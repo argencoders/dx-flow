@@ -20,38 +20,41 @@ type AlphanumericCharacters = StringToUnion<AllowedAlphabetString>;
 /**
  * Validador de Caracteres.
  * Analiza la cadena letra por letra. Cada carácter debe ser alfanumérico O un guion bajo.
- * Si encuentra cualquier otra cosa (espacios, guiones medios, caracteres especiales), lo rechaza.
  */
-type CheckAllowedCharacters<S extends string> =
-  S extends `${infer Head}${infer Tail}`
-    ? Head extends AlphanumericCharacters | "_"
-      ? Tail extends ""
-        ? S
-        : CheckAllowedCharacters<Tail>
-      : never
-    : never;
+type CheckAllowedCharacters<
+  S extends string,
+  Original extends string,
+> = S extends `${infer Head}${infer Tail}`
+  ? Head extends AlphanumericCharacters | "_"
+    ? Tail extends ""
+      ? Original
+      : CheckAllowedCharacters<Tail, Original>
+    : `INVALID_KEY '${Original}' - Character '${Head}' is forbidden. Keys must be UPPERCASE alphanumeric with underscores.`
+  : `INVALID_KEY '${Original}' - Empty string or invalid sequence.`;
 
 /**
  * Validador recursivo para evitar secuencias de guiones bajos consecutivos.
  */
-type CheckMiddleSequence<S extends string> =
-  S extends `${infer Head}__${infer Tail}`
-    ? never
-    : S extends `${infer Head}_${infer Tail}`
-      ? CheckMiddleSequence<Tail>
-      : S;
+type CheckMiddleSequence<
+  S extends string,
+  Original extends string,
+> = S extends `${infer Head}__${infer Tail}`
+  ? `INVALID_KEY '${Original}' - Cannot contain consecutive underscores (__).`
+  : S extends `${infer Head}_${infer Tail}`
+    ? CheckMiddleSequence<Tail, Original>
+    : Original;
 
 /**
  * Tipo utilitario estricto para validar el formato de llaves de mutación.
  */
 export type MutationKey<K> = K extends string
-  ? CheckAllowedCharacters<K> extends never
-    ? never
-    : K extends `_${string}`
-      ? never // Rechaza si empieza con guion bajo (Constante Estructural)
-      : K extends `${string}_`
-        ? never // Rechaza si termina con guion bajo (Constante Estructural)
-        : CheckMiddleSequence<K> extends never
-          ? never
-          : K
-  : never;
+  ? CheckAllowedCharacters<K, K> extends infer CheckResult
+    ? CheckResult extends K // Si el resultado del alfabeto no es la llave original, devuelve su mensaje de error
+      ? K extends `_${string}`
+        ? `INVALID_KEY '${K}' - Keys cannot start with an underscore (_).`
+        : K extends `${string}_`
+          ? `INVALID_KEY '${K}' - Keys cannot end with an underscore (_).`
+          : CheckMiddleSequence<K, K>
+      : CheckResult
+    : never
+  : "INVALID_KEY - Input must be a string literal.";

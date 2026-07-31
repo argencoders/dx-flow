@@ -18,7 +18,7 @@ export function defineMutations<TState>() {
     M extends {
       [K in keyof M]: K extends MutationKey<K>
         ? (state: DeepReadonly<TState>, payload: any) => Partial<TState>
-        : `INVALID_KEY ${K & string} - Keys must be UPPERCASE`;
+        : MutationKey<K>;
     },
   >(mutations: M): M {
     return mutations;
