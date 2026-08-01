@@ -23,3 +23,13 @@ export type IsPlainArray<T> = T extends any[]
   : T extends ReadonlyArray<any>
     ? true
     : false;
+
+/**
+ * Inspecciona las llaves superficiales de un tipo estructural.
+ * - Devuelve `true` si todas las llaves extienden a `AllowedKeyType`.
+ * - Devuelve `false` si se detecta alguna llave fuera del criterio (ej: un Symbol).
+ */
+export type ValidateKeys<
+  T,
+  AllowedKeyType = string,
+> = keyof T extends AllowedKeyType ? true : false;

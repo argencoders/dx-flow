@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import { Equal, Expect } from "./types-testing.js";
-import { IsPlainArray, IsPlainObject } from "./state-discriminators.js";
+import {
+  IsPlainArray,
+  IsPlainObject,
+  ValidateKeys,
+} from "./state-discriminators.js";
 
 test("Discriminadores: Validación atómica de IsPlainObject", () => {
   function testFlujosPositivos() {
@@ -55,5 +59,50 @@ test("Discriminadores: Validación atómica de IsPlainArray", () => {
     type TestDate = Expect<IsPlainArray<Date>, false>;
     type TestString = Expect<IsPlainArray<string>, false>;
     type TestFuncion = Expect<IsPlainArray<() => void>, false>;
+  }
+});
+
+test("Discriminadores: Validación atómica de ValidateKeys", () => {
+  function testFlujosPositivos() {
+    interface LlavesNormales {
+      id: string;
+      edad: number;
+    }
+
+    interface LlavesNumericas {
+      1: string;
+      2: string;
+    }
+
+    // ✅ REQUISITO: Llaves estándar de tipo string deben pasar por defecto
+    type TestStrings = Expect<ValidateKeys<LlavesNormales>, true>;
+
+    // ✅ REQUISITO: Se puede cambiar el criterio a string | number de forma interactiva
+    type TestNumeros = Expect<
+      ValidateKeys<LlavesNumericas, string | number>,
+      true
+    >;
+  }
+
+  function testFlujosNegativos() {
+    const miSymbol = Symbol("id");
+    interface EstructuraConSymbol {
+      [miSymbol]: string;
+      nombre: string;
+    }
+
+    interface EstructuraConNumeros {
+      1: string;
+      nombre: string;
+    }
+
+    // ❌ REQUISITO: Debe rechazar si contiene llaves de tipo Symbol bajo el criterio por defecto (string)
+    type TestFallaSymbol = Expect<ValidateKeys<EstructuraConSymbol>, false>;
+
+    // ❌ REQUISITO: Debe rechazar llaves numéricas si el criterio exige estrictamente cadenas (string)
+    type TestFallaNumeros = Expect<
+      ValidateKeys<EstructuraConNumeros, string>,
+      false
+    >;
   }
 });
