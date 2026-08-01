@@ -1,44 +1,43 @@
 import { TypeError } from "./types-testing.js";
-import { IsPlainObject, ValidateKeys } from "./state-discriminators.js";
+import { IsPlainObject } from "./state-discriminators.js";
 import { Decrement } from "./state-counter.js";
+import { ValidateObjectKeys, ValidatorStrategy } from "./object-keys.js"; // 💡 Importamos tu nuevo motor de llaves
 
 export type ERR_PROFUNDIDAD_EXCEDIDA =
   TypeError<"❌ ERROR: La estructura del estado supera el límite de profundidad (MaxLevel) permitido.">;
 export type ERR_LLAVES_INVALIDAS_INTERNAS =
-  TypeError<"❌ ERROR: Se detectaron llaves inválidas en los subniveles del estado.">;
+  TypeError<"❌ ERROR: Se detectaron llaves que violan la convención de nomenclatura configurada.">;
 
 /**
  * Validador recursivo unitario para estructuras de objetos planos anidados.
- * Controla estrictamente los límites de profundidad y nomenclatura de llaves internas.
  */
 export type CheckObjectDeep<
   T,
-  TKey extends string | number | symbol,
   LevelCounter extends any[],
+  TStrategy extends ValidatorStrategy = "default", // 💡 Inyección de tu estrategia por defecto
 > =
   IsPlainObject<T> extends true
     ? LevelCounter["length"] extends 0
-      ? ERR_PROFUNDIDAD_EXCEDIDA // ❌ Error si es un objeto pero se agotaron los niveles permitidos
-      : ValidateKeys<T, TKey> extends false
+      ? ERR_PROFUNDIDAD_EXCEDIDA
+      : // 🎯 Evaluamos si las llaves superficiales de este nivel cumplen con la estrategia activa
+        ValidateObjectKeys<T, TStrategy> extends TypeError<any>
         ? ERR_LLAVES_INVALIDAS_INTERNAS
-        : // Mapeamos y evaluamos homórficamente cada propiedad restando un nivel de profundidad
-          false extends {
+        : false extends {
               [K in keyof T]: CheckObjectDeep<
                 T[K],
-                TKey,
-                Decrement<LevelCounter>
+                Decrement<LevelCounter>,
+                TStrategy
               > extends TypeError<any>
                 ? false
                 : true;
             }[keyof T]
-          ? // Si alguna propiedad profunda devolvió un error, extraemos y propagamos ese error exacto
-            {
+          ? {
               [K in keyof T]: CheckObjectDeep<
                 T[K],
-                TKey,
-                Decrement<LevelCounter>
+                Decrement<LevelCounter>,
+                TStrategy
               >;
             }[keyof T] &
               TypeError<any>
           : T
-    : T; // Si no es un objeto (es un primitivo), pasa libre para que lo evalúe otra capa
+    : T;

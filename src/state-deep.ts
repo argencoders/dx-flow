@@ -1,7 +1,7 @@
 import { TypeError } from "./types-testing.js";
 import { IsPlainObject, IsPlainArray } from "./state-discriminators.js";
 import { DefaultStateValue } from "./state-values.js";
-import { DefaultStateKey } from "./state-keys.js";
+import { ValidatorStrategy, ValidateObjectKeys } from "./object-keys.js"; // 💡 Importamos tus estrategias
 import { CheckStateShallow } from "./state-shallow.js";
 import { Enumerate } from "./state-counter.js";
 import { CheckNativeLeaf } from "./state-natives.js";
@@ -13,9 +13,9 @@ import { CheckObjectDeep } from "./state-objects.js";
  */
 type CheckStateDeepInternal<
   T,
-  TKey extends string | number | symbol,
   TValue,
   AllowArrays extends boolean,
+  TCasing extends ValidatorStrategy,
   LevelCounter extends any[],
 > = T extends (...args: any[]) => any
   ? TypeError<"❌ ERROR: Se detectó un tipo de dato no permitido en los valores terminales del estado.">
@@ -27,39 +27,46 @@ type CheckStateDeepInternal<
         ? T extends (infer U)[]
           ? CheckStateDeepInternal<
               U,
-              TKey,
               TValue,
               AllowArrays,
+              TCasing,
               LevelCounter
             > extends TypeError<any>
-            ? CheckStateDeepInternal<U, TKey, TValue, AllowArrays, LevelCounter>
+            ? CheckStateDeepInternal<
+                U,
+                TValue,
+                AllowArrays,
+                TCasing,
+                LevelCounter
+              >
             : T
           : T extends ReadonlyArray<infer RU>
             ? CheckStateDeepInternal<
                 RU,
-                TKey,
                 TValue,
                 AllowArrays,
+                TCasing,
                 LevelCounter
               > extends TypeError<any>
               ? CheckStateDeepInternal<
                   RU,
-                  TKey,
                   TValue,
                   AllowArrays,
+                  TCasing,
                   LevelCounter
                 >
               : T
             : T
-        : CheckObjectDeep<T, TKey, LevelCounter> extends TypeError<any>
-          ? CheckObjectDeep<T, TKey, LevelCounter>
+        : // 🎯 Pasamos la estrategia elegida al motor de objetos
+          CheckObjectDeep<T, LevelCounter, TCasing> extends TypeError<any>
+          ? CheckObjectDeep<T, LevelCounter, TCasing>
           : IsPlainObject<T> extends true
             ? false extends {
                 [K in keyof T]: CheckStateDeepInternal<
                   T[K],
-                  TKey,
                   TValue,
                   AllowArrays,
+                  TCasing,
                   LevelCounter
                 > extends TypeError<any>
                   ? false
@@ -68,9 +75,9 @@ type CheckStateDeepInternal<
               ? {
                   [K in keyof T]: CheckStateDeepInternal<
                     T[K],
-                    TKey,
                     TValue,
                     AllowArrays,
+                    TCasing,
                     LevelCounter
                   >;
                 }[keyof T] &
@@ -85,11 +92,18 @@ type CheckStateDeepInternal<
  */
 export type IsValidState<
   T,
-  TKey extends string | number | symbol = DefaultStateKey,
   TValue = DefaultStateValue,
   AllowArrays extends boolean = true,
+  TCasing extends ValidatorStrategy = "default", // 💡 Reemplaza a TKey de forma limpia
   MaxLevel extends number = 2,
 > =
-  CheckStateShallow<T, TKey, TValue, AllowArrays> extends TypeError<any>
-    ? CheckStateShallow<T, TKey, TValue, AllowArrays>
-    : CheckStateDeepInternal<T, TKey, TValue, AllowArrays, Enumerate<MaxLevel>>; // ✅ Simplificado: El pipeline fluye sin guardianes rotos
+  // 🎯 Validamos la raíz del estado usando la estrategia elegida
+  ValidateObjectKeys<T, TCasing> extends TypeError<any>
+    ? ValidateObjectKeys<T, TCasing>
+    : CheckStateDeepInternal<
+        T,
+        TValue,
+        AllowArrays,
+        TCasing,
+        Enumerate<MaxLevel>
+      >;

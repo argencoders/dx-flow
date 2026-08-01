@@ -1,11 +1,8 @@
 import { test } from "node:test";
 import { Expect } from "./types-testing.js";
 import { Enumerate } from "./state-counter.js";
-import {
-  CheckObjectDeep,
-  ERR_PROFUNDIDAD_EXCEDIDA,
-  ERR_LLAVES_INVALIDAS_INTERNAS,
-} from "./state-objects.js";
+import { CheckObjectDeep, ERR_PROFUNDIDAD_EXCEDIDA } from "./state-objects.js";
+import { ERR_LLAVES_INVALIDAS_INTERNAS } from "./state-objects.js";
 
 test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () => {
   function testProfundidadPermitida() {
@@ -16,15 +13,10 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
       };
     }
 
-    // Inicializamos un contador de longitud 2
     type ContadorNivel2 = Enumerate<2>;
 
-    // ✅ REQUISITO: Debe pasar intacto ya que la estructura se mantiene en el límite permitido (Nivel 2)
-    type ResultadoOk = CheckObjectDeep<
-      EstructuraDosNiveles,
-      string,
-      ContadorNivel2
-    >;
+    // ✅ REQUISITO: Pasa limpio usando por defecto el validador de llaves integrado
+    type ResultadoOk = CheckObjectDeep<EstructuraDosNiveles, ContadorNivel2>;
     type TestNivelOk = Expect<ResultadoOk, EstructuraDosNiveles>;
   }
 
@@ -38,39 +30,32 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
       };
     }
 
-    // Inicializamos un contador de longitud 1
     type ContadorNivel1 = Enumerate<1>;
 
-    // ❌ REQUISITO: Debe colapsar exactamente al token de profundidad excedida
+    // ❌ REQUISITO: Sigue cazando los excesos de profundidad perfectamente
     type ResultadoExcedido = CheckObjectDeep<
       EstructuraProfunda,
-      string,
       ContadorNivel1
     >;
     type TestNivelError = Expect<ResultadoExcedido, ERR_PROFUNDIDAD_EXCEDIDA>;
   }
 
   function testLlavesInternasInvalidas() {
-    const miSymbol = Symbol("interno");
-    interface EstructuraConSymbolInterno {
-      id: string;
-      metadatos: {
-        [miSymbol]: string; // Llave inválida en nivel 2
-        nombre: string;
+    interface EstructuraConMinusculasInternas {
+      ID: string;
+      CONFIGURACION: {
+        temaInvalido: string; // ❌ Violará SCREAMING_SNAKE en el subnivel
       };
     }
 
     type ContadorNivel3 = Enumerate<3>;
 
-    // ❌ REQUISITO: Debe propagar el error si encuentra una llave que viola el criterio de strings en subcapas
-    type ResultadoLlaves = CheckObjectDeep<
-      EstructuraConSymbolInterno,
-      string,
-      ContadorNivel3
+    // 🎯 REQUISITO INYECTADO: Pasamos el contador de nivel como 2do argumento y la estrategia "SCREAMING_SNAKE" como 3ro
+    type Resultado = CheckObjectDeep<
+      EstructuraConMinusculasInternas,
+      ContadorNivel3,
+      "SCREAMING_SNAKE"
     >;
-    type TestLlavesError = Expect<
-      ResultadoLlaves,
-      ERR_LLAVES_INVALIDAS_INTERNAS
-    >;
+    type TestLlavesError = Expect<Resultado, ERR_LLAVES_INVALIDAS_INTERNAS>;
   }
 });
