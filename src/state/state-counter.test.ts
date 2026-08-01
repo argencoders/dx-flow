@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "./types-testing.js";
+import { Expect } from "../core/types-testing.js";
 import { Enumerate, Decrement } from "./state-counter.js";
 
 test("Profundidad: Validación atómica del Contador Matemático", () => {

@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../deep-readonly.js";
+import { DeepReadonly } from "../core/deep-readonly.js";
 import { FrameworkMutations } from "../types/framework-mutations.js";
 import { TypedEvent, ValidateHistoryArray } from "../types/typed-event.js";
 

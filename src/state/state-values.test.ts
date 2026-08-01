@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "./types-testing.js";
+import { Expect } from "../core/types-testing.js";
 import { DefaultStateValue, ExcludeFromValue } from "./state-values.js";
 
 test("Ecosistema de Datos: Validación de DefaultStateValue", () => {

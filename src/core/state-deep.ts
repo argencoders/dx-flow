@@ -1,12 +1,14 @@
 import { TypeError } from "./types-testing.js";
-import { IsPlainObject, IsPlainArray } from "./state-discriminators.js";
-import { DefaultStateValue } from "./state-values.js";
-import { ValidatorStrategy, ValidateObjectKeys } from "./object-keys.js"; // 💡 Importamos tus estrategias
-import { CheckStateShallow } from "./state-shallow.js";
-import { Enumerate } from "./state-counter.js";
-import { CheckNativeLeaf } from "./state-natives.js";
-import { CheckArrayLeaf } from "./state-arrays.js";
-import { CheckObjectDeep } from "./state-objects.js";
+import { IsPlainObject, IsPlainArray } from "../state/state-discriminators.js";
+import { DefaultStateValue } from "../state/state-values.js";
+import {
+  ValidatorStrategy,
+  ValidateObjectKeys,
+} from "../nomenclature/object-keys.js";
+import { Enumerate } from "../state/state-counter.js";
+import { CheckNativeLeaf } from "../state/state-natives.js";
+import { CheckArrayLeaf } from "../state/state-arrays.js";
+import { CheckObjectDeep } from "../state/state-objects.js";
 
 /**
  * Pipeline central recursivo que coordina todos los validadores atómicos certificados.

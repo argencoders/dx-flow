@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../deep-readonly.js";
+import { DeepReadonly } from "../core/deep-readonly.js";
 import { MutationKey } from "./mutation-key.js";
 
 export type FrameworkMutations<TState> = {

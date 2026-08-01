@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "./types-testing.js";
+import { Expect } from "../core/types-testing.js";
 import {
   CheckStateShallow,
   ERR_RAIZ_DEBE_SER_OBJETO,

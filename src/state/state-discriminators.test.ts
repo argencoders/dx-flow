@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Equal, Expect } from "./types-testing.js";
+import { Equal, Expect } from "../core/types-testing.js";
 import {
   IsPlainArray,
   IsPlainObject,

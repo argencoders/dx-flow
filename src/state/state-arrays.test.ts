@@ -1,6 +1,6 @@
 import { test } from "node:test";
-import { Expect } from "./types-testing.js";
-import { TypeError } from "./types-testing.js";
+import { Expect } from "../core/types-testing.js";
+import { TypeError } from "../core/types-testing.js";
 import { CheckArrayLeaf } from "./state-arrays.js";
 
 type ERR_VALOR_PROHIBIDO =

@@ -1,4 +1,4 @@
-import { TypeError } from "./types-testing.js";
+import { TypeError } from "../core/types-testing.js";
 import { IsPlainArray } from "./state-discriminators.js";
 import { DefaultStateValue } from "./state-values.js";
 

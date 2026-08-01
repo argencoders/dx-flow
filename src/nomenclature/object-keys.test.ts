@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect, Equal } from "./types-testing.js";
+import { Expect, Equal } from "../core/types-testing.js";
 import {
   ValidateObjectKeys,
   StringToAlphabet,

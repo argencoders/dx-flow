@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect, TypeError } from "./types-testing.js";
+import { Expect, TypeError } from "../core/types-testing.js";
 import { CheckNativeLeaf } from "./state-natives.js";
 
 type ERR_VALOR_PROHIBIDO =

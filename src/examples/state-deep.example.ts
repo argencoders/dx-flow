@@ -1,4 +1,4 @@
-import { IsValidState } from "./state-deep.js";
+import { IsValidState } from "../core/state-deep.js";
 
 // 1. Definimos una clase Store genérica que exige que su estado sea válido
 class Store<TState> {

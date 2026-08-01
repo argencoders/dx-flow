@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import { Expect } from "./types-testing.js";
 import { IsValidState } from "./state-deep.js";
-import { ERR_PROFUNDIDAD_EXCEDIDA } from "./state-objects.js";
-import { ERR_NOMENCLATURA_INVALIDA } from "./object-keys.js";
+import { ERR_PROFUNDIDAD_EXCEDIDA } from "../state/state-objects.js";
+import { ERR_NOMENCLATURA_INVALIDA } from "../nomenclature/object-keys.js";
 import { TypeError } from "./types-testing.js";
 
 type ERR_VALOR_PROHIBIDO =

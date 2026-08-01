@@ -1,7 +1,10 @@
-import { TypeError } from "./types-testing.js";
+import { TypeError } from "../core/types-testing.js";
 import { IsPlainObject } from "./state-discriminators.js";
 import { Decrement } from "./state-counter.js";
-import { ValidateObjectKeys, ValidatorStrategy } from "./object-keys.js"; // 💡 Importamos tu nuevo motor de llaves
+import {
+  ValidateObjectKeys,
+  ValidatorStrategy,
+} from "../nomenclature/object-keys.js";
 
 export type ERR_PROFUNDIDAD_EXCEDIDA =
   TypeError<"❌ ERROR: La estructura del estado supera el límite de profundidad (MaxLevel) permitido.">;

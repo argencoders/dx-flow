@@ -1,4 +1,4 @@
-import { TypeError } from "./types-testing.js";
+import { TypeError } from "../core/types-testing.js";
 import {
   IsPlainObject,
   IsPlainArray,
