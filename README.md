@@ -2,7 +2,7 @@
 
 ---
 
-## 1. Principios de Diseño y Reglas Arquitectónicas
+## [x] 1. Principios de Diseño y Reglas Arquitectónicas
 
 - Aislamiento y Atomización: Quedan prohibidos los tipos condicionales gigantescos y multipropósito. Cada restricción lógica (detectar tipos nativos, validar claves, verificar profundidad) se encapsulará en un tipo utilitario unitario con una única responsabilidad.
 - Testabilidad Unitaria de Tipos: Cada tipo utilitario creado deberá contar con su correspondiente suite de pruebas estáticas utilizando una aserción de igualdad estricta. Ningún tipo se integrará al motor sin haber sido validado de forma aislada.
