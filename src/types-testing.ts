@@ -16,7 +16,7 @@ export type Equal<X, Y> =
  * Fuerza a que el argumento genérico sea estrictamente del tipo esperado
  * Si el tipo provisto no es `true`, la restricción se rompe y el compilador arroja un error inmediato.
  */
-export type Expect<T extends expected, expected = true> = T;
+export type Expect<T extends expected, expected> = T;
 
 /**
  * Encapsula un mensaje de error legible por humanos e IA dentro del sistema de tipos.
