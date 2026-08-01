@@ -1,9 +1,29 @@
 import { test } from "node:test";
-import { Expect } from "./types-testing.js";
+import { Expect, Equal } from "./types-testing.js";
 import {
   ValidateObjectKeys,
+  StringToAlphabet,
   ERR_NOMENCLATURA_INVALIDA,
 } from "./object-keys.js";
+
+test("Nomenclatura: Validación atómica de StringToAlphabet", () => {
+  function testExtraccion() {
+    type AlfabetoPrueba = StringToAlphabet<"ABC">;
+    type UnionEsperada = "A" | "B" | "C";
+
+    // ✅ REQUISITO: Debe picar la cadena continua y transformarla en una unión pura de caracteres
+    type TestOk = Expect<Equal<AlfabetoPrueba, UnionEsperada>, true>;
+
+    type AlfabetoUnion = StringToAlphabet<"XY" | "Z">;
+    type UnionMultipleEsperada = "X" | "Y" | "Z";
+
+    // ✅ REQUISITO: Debe funcionar también si se le pasa una unión de múltiples strings literales
+    type TestUnionOk = Expect<
+      Equal<AlfabetoUnion, UnionMultipleEsperada>,
+      true
+    >;
+  }
+});
 
 test("Nomenclatura: Validación con la estrategia 'default'", () => {
   function testFlujos() {

@@ -3,34 +3,17 @@ import { TypeError } from "./types-testing.js";
 export type ERR_NOMENCLATURA_INVALIDA =
   TypeError<"❌ ERROR: Las llaves del objeto no cumplen con el formato de convención requerido.">;
 
-// Alfabeto de minúsculas para el validador estricto SCREAMING_SNAKE
-type LetrasMinusculas =
-  | "a"
-  | "b"
-  | "c"
-  | "d"
-  | "e"
-  | "f"
-  | "g"
-  | "h"
-  | "i"
-  | "j"
-  | "k"
-  | "l"
-  | "m"
-  | "n"
-  | "o"
-  | "p"
-  | "q"
-  | "r"
-  | "s"
-  | "t"
-  | "u"
-  | "v"
-  | "w"
-  | "x"
-  | "y"
-  | "z";
+/**
+ * Transforma un string literal (o una unión de strings) en una unión de caracteres individuales.
+ * Ejemplo: StringToAlphabet<"ABC"> resuelve automáticamente a "A" | "B" | "C"
+ */
+export type StringToAlphabet<T extends string> =
+  T extends `${infer Caracter}${infer Resto}`
+    ? Caracter | StringToAlphabet<Resto>
+    : never;
+
+// 💡 EM_PRO_LI_JA_DO: Extraemos el alfabeto de minúsculas dinámicamente desde un string continuo
+type LetrasMinusculas = StringToAlphabet<"abcdefghijklmnopqrstuvwxyz">;
 
 /**
  * Registro de firmas unitarias para validación de una única clave 'K'.
