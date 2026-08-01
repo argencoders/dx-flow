@@ -1,11 +1,12 @@
 {
-  "name": "ollama",
+  "name": "workflow",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "test": "tsx --test src/**/*.test.ts",
+    "build": "tsc",
     "start": "tsx src/index.ts"
   },
   "keywords": [],
