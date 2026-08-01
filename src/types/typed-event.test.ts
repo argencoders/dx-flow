@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { ValidateHistoryArray } from "./typed-event.js";
-import { DeepReadonly } from "./deep-readonly.js";
+import { DeepReadonly } from "../deep-readonly.js";
 
 interface EstadoApp {
   saldo: number;
