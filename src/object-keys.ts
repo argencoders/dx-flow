@@ -12,8 +12,25 @@ export type StringToAlphabet<T extends string> =
     ? Caracter | StringToAlphabet<Resto>
     : never;
 
-// 💡 EM_PRO_LI_JA_DO: Extraemos el alfabeto de minúsculas dinámicamente desde un string continuo
+// Extraemos el alfabetos dinámicamente desde un string continuo
+type LetrasMayusculas = StringToAlphabet<"ABCDEFGHIJKLMNOPQRSTUVWXYZ">;
+type Numeros = StringToAlphabet<"0123456789">;
+type SimbolosValidos = "_" | "-";
 type LetrasMinusculas = StringToAlphabet<"abcdefghijklmnopqrstuvwxyz">;
+
+/**
+ * Validador Gramatical Recursivo:
+ * Revisa el string carácter por carácter de izquierda a derecha.
+ * Si encuentra un solo carácter que NO está en el alfabeto 'TAlphabet', colapsa a 'false'.
+ */
+export type IsValidStringByAlphabet<
+  S extends string,
+  TAlphabet,
+> = S extends `${infer Caracter}${infer Resto}`
+  ? Caracter extends TAlphabet
+    ? IsValidStringByAlphabet<Resto, TAlphabet> // El carácter es válido, seguimos con el resto
+    : false // ❌ Carácter ilegal detectado
+  : true; // ✅ Llegamos al final del string sin caracteres ilegales
 
 /**
  * Registro de firmas unitarias para validación de una única clave 'K'.
@@ -27,18 +44,14 @@ export interface KeyStrategy<K extends string | number | symbol> {
 
   // 3. "SCREAMING_SNAKE": Fuerza mayúsculas sostenidas con guiones bajos (Rechaza minúsculas, espacios, guiones huérfanos)
   SCREAMING_SNAKE: K extends string
-    ? K extends `${string}${LetrasMinusculas}${string}`
-      ? false
-      : K extends `${string} ${string}`
-        ? false
-        : K extends `_${string}`
-          ? false
-          : K extends `${string}_`
-            ? false
-            : K extends `${string}__${string}`
-              ? false
-              : true
-    : false;
+    ? K extends `_${string}`
+      ? false // ❌ No guiones al inicio
+      : K extends `${string}_`
+        ? false // ❌ No guiones al final
+        : K extends `${string}__${string}`
+          ? false // ❌ No guiones dobles
+          : IsValidStringByAlphabet<K, LetrasMayusculas | Numeros | "_">
+    : false; // ❌ No es un string literal
 }
 
 // Tipo unión de los nombres de los validadores disponibles
