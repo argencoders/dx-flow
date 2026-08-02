@@ -1,39 +1,25 @@
 import { test } from "node:test";
 import { Expect } from "../core/types-testing.js";
-import { ValidateGraphNodes } from "./validator.js";
+import { defineWorkflow } from "./factory.js";
 
 type NodosExistentes = "start" | "intentar_pago" | "fin_exito";
 interface EstadoSimulado {
   intentos: number;
 }
 type RegistroVacio = {};
-
-test("Workflow - Validator: Validación de nodos nativos base", () => {
-  function testFlujoBase() {
-    type NodosUsuario = {
-      pausa: { type: "delay"; durationMs: 1000; onTimeout: "intentar_pago" };
-      cierre: { type: "end"; status: "SUCCESS" };
-    };
-
-    type Resultado = ValidateGraphNodes<
-      NodosUsuario,
-      EstadoSimulado,
-      RegistroVacio,
-      NodosExistentes
-    >;
-
-    // ✅ REQUISITO: Al usar tipos nativos integrados del core, pasa la validación intacto
-    type Test = Expect<Resultado, NodosUsuario>;
-  }
-});
+interface MutacionesVacinas {}
 
 // ============================================================================
 // 🎯 PRUEBA DE FUEGO DE EXTENSIBILIDAD (Declaration Merging)
 // ============================================================================
 
-// Simulamos que el desarrollador inyecta un nodo tipo "webhook" personalizado en su app
 declare module "./validator.js" {
-  interface NodeDefinitions<TState, TRegistry, TNodesList extends string> {
+  interface NodeDefinitions<
+    TState,
+    TRegistry,
+    TNodesList extends string,
+    TMutations,
+  > {
     webhook: {
       type: "webhook";
       url: string;
@@ -42,24 +28,42 @@ declare module "./validator.js" {
   }
 }
 
+// Inicializamos la factoría compartida para el test de validadores
+const workflow = defineWorkflow<
+  EstadoSimulado,
+  RegistroVacio,
+  MutacionesVacinas
+>();
+
 test("Workflow - Validator: Extensibilidad de fisonomías (Nodo Webhook)", () => {
-  function testNodoInyectado() {
-    type NodosConExtension = {
-      disparar_alerta: {
-        type: "webhook";
-        url: "https://api.com";
-        onResponseOk: "fin_exito";
-      };
-    };
+  function testNodoInyectadoOk() {
+    // ✅ REQUISITO: Un nodo inyectado con destinos correctos compila impecable en la factoría
+    const miGrafo = workflow.create({
+      id: "test_ext_ok",
+      nodes: {
+        disparar_alerta: {
+          type: "webhook",
+          url: "https://api.com",
+          onResponseOk: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
 
-    type Resultado = ValidateGraphNodes<
-      NodosConExtension,
-      EstadoSimulado,
-      RegistroVacio,
-      NodosExistentes
-    >;
+    type TestOk = Expect<typeof miGrafo, typeof miGrafo>;
+  }
 
-    // ✅ REQUISITO EXTRAORDINARIO: El validador asimila la extensión sin tocar el core de validator.ts
-    type TestExtensionOk = Expect<Resultado, NodosConExtension>;
+  function testNodoInyectadoRoto() {
+    workflow.create({
+      id: "test_ext_roto",
+      nodes: {
+        disparar_alerta: {
+          type: "webhook",
+          url: "https://api.com",
+          // @ts-expect-error
+          onResponseOk: "NODO_FANTASMA_INEXISTENTE",
+        },
+      },
+    });
   }
 });

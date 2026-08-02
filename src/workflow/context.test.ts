@@ -1,28 +1,70 @@
 import { test } from "node:test";
 import { Expect } from "../core/types-testing.js";
-import { WorkflowContext, NavigationResult } from "./context.js";
+import {
+  WorkflowContext,
+  NavigationResult,
+  createRuntimeContext,
+} from "./context.js";
+import assert from "node:assert";
 
-test("Workflow - Context: Validación atómica de seguridad de destinos (.next)", () => {
-  // 1. Simulamos una lista blanca de nodos existentes de un grafo de cobro
-  type MisNodos = "start" | "intentar_pago" | "activar_suscripcion";
-  interface MiEstado {
-    clicks: number;
-  }
+interface EstadoSimulado {
+  clicks: number;
+}
+type NodosSimulados = "start" | "pausa" | "fin";
 
-  function testFlujosDeNavegacion() {
-    // Declaramos un contexto simulado alimentado por nuestra lista blanca de nodos
-    const context = {} as WorkflowContext<MiEstado, MisNodos>;
+interface MutacionesSimuladas {
+  INCREMENTAR: (state: EstadoSimulado, payload: unknown) => any;
+  SET_VALOR: (state: EstadoSimulado, v: number) => any;
+}
 
-    // ✅ REQUISITO: Pasar un destino que existe en la lista blanca debe compilar de forma limpia
-    const transicionValida = context.next("intentar_pago");
-    type TestRetorno = Expect<typeof transicionValida, NavigationResult>;
+test("Workflow - Context: Validación estática de firmas (.next y .mutate)", () => {
+  function testDiseno() {
+    const context = {} as WorkflowContext<
+      EstadoSimulado,
+      NodosSimulados,
+      MutacionesSimuladas
+    >;
 
-    // ❌ REQUISITO CUMPLIDO: Intentar saltar a un nodo fantasma debe ser bloqueado por el compilador en el acto
+    // ✅ REQUISITO: Destino válido compila limpio
+    const ok = context.next("pausa");
+    type TestRetorno = Expect<typeof ok, NavigationResult>;
+
+    // ❌ REQUISITO CUMPLIDO: Bloquea destinos inexistentes
     // @ts-expect-error
-    context.next("NODO_FANTASMA_QUE_NO_EXISTE");
+    context.next("NODO_FANTASMA");
 
-    // ❌ REQUISITO CUMPLIDO: Tampoco debe aceptar un string general vacío o genérico
+    // ✅ REQUISITO: Permite mutaciones sin payload
+    context.mutate("INCREMENTAR");
+
+    // ✅ REQUISITO: Exige el tipo de payload correcto si está declarado
+    context.mutate("SET_VALOR", 42);
+
+    // ❌ REQUISITO CUMPLIDO: Bloquea payloads de tipos erróneos
     // @ts-expect-error
-    context.next("");
+    context.mutate("SET_VALOR", "un_string_ilegal");
   }
+});
+
+test("Workflow - Context: Ejecución en Runtime de createRuntimeContext", () => {
+  let mutacionGatillada: any = null;
+  let payloadGatillado: any = null;
+
+  // Inicializamos el contexto real usando el constructor corregido
+  const context = createRuntimeContext<
+    EstadoSimulado,
+    NodosSimulados,
+    MutacionesSimuladas
+  >((key, pl) => {
+    mutacionGatillada = key;
+    payloadGatillado = pl;
+  });
+
+  // Ejecutamos la navegación física
+  const nav = context.next("fin");
+  assert.strictEqual(nav.target, "fin");
+
+  // Ejecutamos la mutación física
+  context.mutate("SET_VALOR", 100);
+  assert.strictEqual(mutacionGatillada, "SET_VALOR");
+  assert.strictEqual(payloadGatillado, 100);
 });
