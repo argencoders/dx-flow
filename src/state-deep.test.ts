@@ -1,9 +1,9 @@
 import { test } from "node:test";
-import { Expect } from "./types-testing.js";
-import { IsValidState } from "./state-deep.js";
-import { ERR_PROFUNDIDAD_EXCEDIDA } from "../state/state-objects.js";
-import { ERR_NOMENCLATURA_INVALIDA } from "../nomenclature/object-keys.js";
-import { TypeError } from "./types-testing.js";
+import { Expect } from "./core/types-testing.js";
+import { IsValidState } from "./state/state-deep.js";
+import { ERR_PROFUNDIDAD_EXCEDIDA } from "./state-objects.js";
+import { ERR_NOMENCLATURA_INVALIDA } from "./object-keys.js";
+import { TypeError } from "./core/types-testing.js";
 
 type ERR_VALOR_PROHIBIDO =
   TypeError<"❌ ERROR: Se detectó un tipo de dato no permitido en los valores terminales del estado.">;
