@@ -2,14 +2,15 @@ import { DeepReadonly } from "../core/deep-readonly.js";
 import { KeyStrategy, ValidatorStrategy } from "../nomenclature/object-keys.js";
 import { TypeError } from "../core/types-testing.js";
 
-// Firma flexible que permite al desarrollador retornar un estado completo o parcial
-type MutationFn<S, Payload> = (state: S, payload: Payload) => S | Partial<S>;
+// Firma base mutable que se le expondrá al Reducer/Replay externo
+export type PureMutationFn<S, Payload> = (
+  state: S,
+  payload: Payload,
+) => S | Partial<S>;
 
 /**
- * Validador e inyector atómico alimentado por la estrategia inyectada.
- * - Fuerza 'DeepReadonly<TState>' en el primer parámetro de cada callback de forma automática.
- * - Ejecuta la estrategia de nomenclatura 'TCasing' de forma nativa e individual sobre cada clave 'K'.
- * - Si una clave falla, esa propiedad específica se transforma en un TypeError localizado.
+ * Validador e inyector atómico clave por clave para la fase de diseño.
+ * Fuerza 'DeepReadonly<TState>' en el primer parámetro para proteger la declaración.
  */
 type ValidateMutationsMap<
   TState,
@@ -19,14 +20,25 @@ type ValidateMutationsMap<
   [K in keyof TMethods]: KeyStrategy<K>[TCasing] extends false
     ? TypeError<"❌ ERROR: Esta llave viola la convención de nomenclatura configurada para este Store.">
     : TMethods[K] extends (state: any, payload: infer PL) => any
-      ? MutationFn<DeepReadonly<TState>, PL>
+      ? (state: DeepReadonly<TState>, payload: PL) => TState | Partial<TState>
       : never;
 };
 
 /**
- * Punto de entrada del pipeline de mutaciones. Captura el tipo del estado.
- * @template TState - La estructura de datos del estado (debe ser un estado válido).
- * @template TCasing - La estrategia de nomenclatura requerida para las claves (Por defecto: "SCREAMING_SNAKE").
+ * Transforma el mapa validado de vuelta a tipos mutables puros (TState puro, no readonly).
+ * Esto es lo que el Reducer y el Replay consumirán para trabajar sin fricciones de tipos.
+ */
+export type UnwrapMutations<TState, TMethods> = {
+  [K in keyof TMethods]: TMethods[K] extends (
+    state: any,
+    payload: infer PL,
+  ) => any
+    ? PureMutationFn<TState, PL>
+    : never;
+};
+
+/**
+ * Factoría pura de Mutaciones.
  */
 export const defineMutations = <
   TState,
@@ -34,12 +46,36 @@ export const defineMutations = <
 >() => {
   return {
     /**
-     * Registra, infiere y valida un conjunto de mutaciones bajo el formato inyectado.
+     * Registra y valida las mutaciones.
+     * Devuelve exactamente el objeto del parámetro pero con firmas de estado mutables puras.
      */
     create: <TMethods extends ValidateMutationsMap<TState, TMethods, TCasing>>(
       methods: TMethods,
-    ): TMethods => {
-      return methods;
+    ): UnwrapMutations<TState, TMethods> => {
+      // En runtime devolvemos el objeto tal cual; el tipado se encarga de limpiarle el Readonly
+      return methods as unknown as UnwrapMutations<TState, TMethods>;
     },
   };
 };
+
+export // Tipo utilitario independiente para remover el parámetro state (Será parte de los servicios externos)
+type PublicActions<TMethods> = {
+  [K in keyof TMethods]: TMethods[K] extends (
+    state: any,
+    payload: infer PL,
+  ) => any
+    ? unknown extends PL
+      ? () => void
+      : (payload: PL) => void
+    : never;
+};
+
+// Función Factory de Reducer independiente (Simula el servicio separado que querías)
+export function createReducer<TState, TMethods>(methods: TMethods) {
+  return (state: TState, action: { type: string; payload?: any }): TState => {
+    const targetMutation = (methods as any)[action.type];
+    if (!targetMutation) return state;
+    const result = targetMutation(state, action.payload);
+    return { ...state, ...result };
+  };
+}
