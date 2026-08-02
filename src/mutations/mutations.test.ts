@@ -8,24 +8,18 @@ interface EstadoUsuario {
   edad: number;
 }
 
-const mutaciones = defineMutations<EstadoUsuario>();
+test("Mutaciones - Etapa 1: Inferencia, inmutabilidad y Casing por defecto (SCREAMING_SNAKE)", () => {
+  // Inicializamos usando la configuración por defecto
+  const mutaciones = defineMutations<EstadoUsuario>();
 
-test("Mutaciones - Etapa 1: Inferencia, inmutabilidad y retorno Partial", () => {
   const acciones = mutaciones.create({
-    // ✅ REQUISITO: Ahora se permite retornar un Partial simplificado (sólo la edad)
     INCREMENTAR_EDAD: (state) => {
-      // @ts-expect-error - ERROR: state sigue siendo inmutable (DeepReadonly)
+      // @ts-expect-error - ERROR: state es inmutable
       state.edad = state.edad + 1;
       return { edad: state.edad + 1 };
     },
 
-    // ✅ REQUISITO: Sigue permitiendo retornar el estado completo de forma opcional
-    CAMBIAR_NOMBRE: (state, nuevoNombre: string) => {
-      return {
-        nombre: nuevoNombre,
-        edad: state.edad,
-      };
-    },
+    CAMBIAR_NOMBRE: (state, nuevoNombre: string) => ({ nombre: nuevoNombre }),
   });
 
   function testFirmasResultantes() {
@@ -38,16 +32,29 @@ test("Mutaciones - Etapa 1: Inferencia, inmutabilidad y retorno Partial", () => 
       ) => EstadoUsuario | Partial<EstadoUsuario>
     >;
   }
-});
 
-test("Mutaciones - Etapa 1: Aislamiento del error por Nomenclatura (Casing)", () => {
+  // ❌ REQUISITO: Por defecto debe seguir bloqueando llaves en minúscula de forma localizada
   mutaciones.create({
-    // 🎯 COMPROBACIÓN REQUERIDA (Verifica en tu editor):
-    // La línea roja ahora se dibujará de forma precisa y localizada únicamente debajo de 'cambiar_edad'.
-    // La clave 'OK' de abajo compilará de forma completamente limpia y silenciosa sin recibir salpicaduras de error.
     // @ts-expect-error
     cambiar_edad: (state) => state,
-
     OK: (state) => state,
+  });
+});
+
+test("Mutaciones - Etapa 1: Cambio interactivo de Estrategia de Casing (string)", () => {
+  // 🎯 Inyectamos la estrategia "string" como segundo parámetro genérico
+  const mutacionesConCamel = defineMutations<EstadoUsuario, "string">();
+
+  const acciones = mutacionesConCamel.create({
+    // ✅ REQUISITO: Ahora las llaves en minúscula/camelCase son totalmente permitidas por la estrategia string
+    cambiarEdad: (state) => ({ edad: state.edad + 1 }),
+    nombreModificado: (state, n: string) => ({ nombre: n }),
+  });
+
+  // ❌ REQUISITO: Debe rechazar si el desarrollador mete una llave numérica bajo la estrategia string
+  mutacionesConCamel.create({
+    // @ts-expect-error
+    100: (state) => state,
+    llaveValida: (state) => state,
   });
 });
