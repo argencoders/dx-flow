@@ -79,3 +79,23 @@ export function createReducer<TState, TMethods>(methods: TMethods) {
     return { ...state, ...result };
   };
 }
+
+/**
+ * Transforma un mapa de mutaciones en una unión discriminada de eventos seguros.
+ * Mapea cada clave 'K' distribuyéndola en un objeto estructurado con su payload exacto.
+ */
+export type TypedEvent<TMethods> = {
+  [K in keyof TMethods]: TMethods[K] extends (
+    state: any,
+    payload: infer PL,
+  ) => any
+    ? unknown extends PL
+      ? { type: K } // Si la mutación no declaró payload, el objeto del evento no lleva esa propiedad
+      : { type: K; payload: PL }
+    : never;
+}[keyof TMethods]; // 💡 El truco '[keyof TMethods]' convierte el objeto mapeado en una Unión pura (Type Union)
+
+/**
+ * Representa el diario de eventos o historial cronológico indexado para el Replay.
+ */
+export type EventLog<TMethods> = TypedEvent<TMethods>[];

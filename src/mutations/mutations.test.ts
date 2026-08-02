@@ -3,8 +3,10 @@ import { Expect } from "../core/types-testing.js";
 import {
   createReducer,
   defineMutations,
+  EventLog,
   PublicActions,
   PureMutationFn,
+  TypedEvent,
 } from "./mutations.js";
 import assert from "node:assert";
 
@@ -109,4 +111,41 @@ test("Mutaciones - Etapa 2: Ejecución del Reducer como Servicio Separado", () =
   const estado2 = reducer(estado1, { type: "CAMBIAR_NOMBRE", payload: "Juan" });
   assert.strictEqual(estado2.nombre, "Juan");
   assert.strictEqual(estado2.edad, 26);
+});
+
+test("Mutaciones - Etapa 3: Extracción de Unión Discriminada de Eventos (TypedEvent)", () => {
+  function testComposicionDeEventos() {
+    interface MutacionesSimuladas {
+      INCREMENTAR_EDAD: (state: any) => any;
+      CAMBIAR_NOMBRE: (state: any, nuevoNombre: string) => any;
+    }
+
+    // Extraemos la unión de eventos tipados
+    type MisEventos = TypedEvent<MutacionesSimuladas>;
+
+    // Definimos exactamente la unión de estructuras que esperamos que el compilador fabrique
+    type UnionEventosEsperada =
+      | { type: "INCREMENTAR_EDAD" }
+      | { type: "CAMBIAR_NOMBRE"; payload: string };
+
+    // ✅ REQUISITO: Comprobamos que TypedEvent distribuyó las llaves en una Unión idéntica
+    type TestUnionPerfecta = Expect<MisEventos, UnionEventosEsperada>;
+
+    // ✅ REQUISITO DE USO: Validamos que un historial de eventos use el array estructurado de forma correcta
+    const historialValido: EventLog<MutacionesSimuladas> = [
+      { type: "INCREMENTAR_EDAD" },
+      { type: "CAMBIAR_NOMBRE", payload: "Carlos" }, // El payload string es obligatorio aquí
+    ];
+
+    // Provocamos escenarios inválidos para verificar que TypeScript los ataje con alertas rojas:
+    const historialConPayloadInvalido: EventLog<MutacionesSimuladas> = [
+      // @ts-expect-error - Falla porque 'INCREMENTAR_EDAD' no acepta propiedad payload
+      { type: "INCREMENTAR_EDAD", payload: 123 },
+    ];
+
+    const historialConPayloadErroneo: EventLog<MutacionesSimuladas> = [
+      // @ts-expect-error - Falla porque 'CAMBIAR_NOMBRE' exige estrictamente un payload de tipo string, no number
+      { type: "CAMBIAR_NOMBRE", payload: 999 },
+    ];
+  }
 });
