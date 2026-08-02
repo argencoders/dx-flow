@@ -14,6 +14,7 @@ Estudio arquitectónico avanzado para el diseño de motores de estado e inmutabi
 - [Sistema de Inmutabilidad Absoluta](docs/deep-readonly.md)
 - [Motor de Convención de Nomenclatura de Claves](docs/object-casing.md)
 - [Motor de Validación de Estado Profundo](docs/validation-state.md)
+- [Mutations y Event Logger](docs/mutations-pipeline.md)
 
 ## ⬜ Próximo Bloque Core: Factoría de Mutaciones
 
