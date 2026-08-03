@@ -45,6 +45,8 @@ export function createRuntimeContext<
   TNodesList extends string,
   TMutations,
 >(
+  // 💡 USUAL DE 'any': El payload es 'any' en la firma del despachador de runtime porque cada mutación
+  // en TMutations posee un tipo de payload heterogéneo (number, string, objetos, o undefined).
   onMutation: (mutationKey: keyof TMutations, payload: any) => void,
 ): WorkflowContext<TState, TNodesList, TMutations> {
   return {
@@ -52,6 +54,8 @@ export function createRuntimeContext<
       __type_navigation__: "NEXT_NODE",
       target: destination,
     }),
+    // 💡 USUAL DE 'any[]': Se utilizan rest parameters en tuple args para soportar tanto mutaciones
+    // que reciben payload como aquellas que no requieren argumento.
     mutate: <M extends keyof TMutations>(...args: any[]): void => {
       const [mutationKey, payload] = args;
       onMutation(mutationKey, payload);
