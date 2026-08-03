@@ -45,9 +45,6 @@ export interface NodeDefinitions<
 
 /**
  * Validador homórfico que inspecciona cada propiedad contra las firmas de NodeDefinitions.
- * 💡 EXHAUSTIVIDAD DE onError:
- * Si 'action' devuelve un string (ej: "FONDOS_INSUFICIENTES"), exige obligatoriamente que 'onError'
- * esté presente y contenga dicha llave.
  */
 export type ValidateGraphNodes<
   TNodes,
@@ -122,5 +119,12 @@ export type ValidateGraphNodes<
                 TMutations
               >[TType]
       : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
-    : TNodes[K];
+    : {
+        type: keyof NodeDefinitions<
+          TState,
+          TRegistry,
+          TNodesList,
+          TMutations
+        >;
+      };
 };

@@ -11,8 +11,8 @@ export const defineWorkflow = <TState, TRegistry, TMutations>() => {
     create: <
       TNodes extends {
         [K in keyof TNodes]: {
-          type: keyof NodeDefinitions<any, any, any, any>;
-        } & Record<string, any>;
+          type: keyof NodeDefinitions<TState, TRegistry, any, TMutations>;
+        };
       },
     >(graph: {
       readonly id: string;
