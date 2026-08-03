@@ -150,6 +150,7 @@ export async function executeWorkflow<
     const contextFull = {
       ...runtimeContext,
       services,
+      signalPayload,
     };
 
     const result: NodeHandlerResult<TNodesList> = await handler({
