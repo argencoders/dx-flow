@@ -1,4 +1,4 @@
-import { NodeHandlersMap } from "./core/node-handler.js";
+import { NodeHandlersMap } from "../core/node-handler.js";
 import { nodeActionHandler } from "./node-action.js";
 import { nodeChooseHandler } from "./node-choose.js";
 import { nodeDelayHandler } from "./node-delay.js";

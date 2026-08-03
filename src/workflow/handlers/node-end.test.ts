@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nodeEndHandler } from "./node-end.js";
-import { createRuntimeContext } from "./core/context.js";
-import { NodeHandlerParams } from "./core/node-handler.js";
-import { NodeDefinitions } from "./core/validator.js";
-import { defineWorkflow } from "./core/factory.js";
+import { createRuntimeContext } from "../core/context.js";
+import { NodeHandlerParams } from "../core/node-handler.js";
+import { NodeDefinitions } from "../core/validator.js";
+import { defineWorkflow } from "../core/factory.js";
 
 interface EstadoTest {
   saldo: number;

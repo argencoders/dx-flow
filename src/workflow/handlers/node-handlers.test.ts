@@ -4,9 +4,9 @@ import {
   defaultNodeHandlers,
   createNodeHandlersRegistry,
 } from "./node-handlers.js";
-import { createRuntimeContext } from "./core/context.js";
-import { NodeHandlerParams, NodeHandler } from "./core/node-handler.js";
-import { NodeDefinitions } from "./core/validator.js";
+import { createRuntimeContext } from "../core/context.js";
+import { NodeHandlerParams, NodeHandler } from "../core/node-handler.js";
+import { NodeDefinitions } from "../core/validator.js";
 
 interface EstadoTest {
   contador: number;

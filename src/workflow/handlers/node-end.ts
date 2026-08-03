@@ -1,4 +1,4 @@
-import { NodeHandler, NodeHandlerResult } from "./core/node-handler.js";
+import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
 
 /**
  * Estrategia de ejecución atómica para nodos de tipo 'end'.

@@ -7,7 +7,7 @@ import {
   NodeHandlersMap,
   NodeHandlerResult,
 } from "./node-handler.js";
-import { defaultNodeHandlers } from "../node-handlers.js";
+import { defaultNodeHandlers } from "../handlers/node-handlers.js";
 
 /**
  * Registro de un paso individual ejecutado durante la trayectoria del workflow.
