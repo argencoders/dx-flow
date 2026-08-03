@@ -6,7 +6,8 @@ import { WorkflowContext } from "./context.js";
  */
 export type NodeHandlerResult<TNodesList extends string> =
   | { type: "NEXT"; target: TNodesList }
-  | { type: "END"; status: string };
+  | { type: "END"; status: string }
+  | { type: "SUSPEND"; eventName?: string; targetOnResume?: TNodesList };
 
 /**
  * Parámetros estandarizados pasados a un handler de nodo.
