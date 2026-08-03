@@ -44,7 +44,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
           },
           onSuccess: "pausa",
           onError: {
-            FONDOS_INSUFICIENTES: "evaluar_reintento" as const,
+            FONDOS_INSUFICIENTES: "evaluar_reintento",
           },
         },
         evaluar_reintento: {

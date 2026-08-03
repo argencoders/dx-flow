@@ -45,6 +45,11 @@ export interface NodeDefinitions<
 
 /**
  * Validador homórfico que inspecciona cada propiedad contra las firmas de NodeDefinitions.
+ * 💡 PASO 2: CONTEXTUALIZACIÓN Y VALIDACIÓN ESTRICTA DE onError
+ * 1. Mapea { [P in keyof E]: TNodesList } para contextualizar nativamente los valores de onError
+ *    como TNodesList (sugerencias automáticas en el IDE y CERO necesidad de 'as const').
+ * 2. Valida estrictamente que los valores en onError pertenezcan a TNodesList, rechazando
+ *    destinos inexistentes incluso si se intenta usar 'as const'.
  */
 export type ValidateGraphNodes<
   TNodes,
@@ -64,60 +69,29 @@ export type ValidateGraphNodes<
         ? TNodes[K] extends {
             action: (...args: any[]) => Promise<infer TRes> | infer TRes;
           }
-          ? [TRes] extends [void]
-            ? TNodes[K] extends NodeDefinitions<
-                TState,
-                TRegistry,
-                TNodesList,
-                TMutations
-              >["action"]
-              ? TNodes[K]
-              : NodeDefinitions<
-                  TState,
-                  TRegistry,
-                  TNodesList,
-                  TMutations
-                >["action"]
-            : TNodes[K] extends { onError: infer E }
-              ? E extends Record<string, TNodesList>
-                ? [TRes] extends [keyof E | void]
-                  ? TNodes[K] & {
-                      type: "action";
-                      onSuccess: TNodesList;
-                      onError: { [P in keyof E]: TNodesList };
-                    }
-                  : `❌ ERROR: El nodo '${K & string}' retorna '${Exclude<TRes, void> & string}' que no está declarado en 'onError'.`
-                : NodeDefinitions<
-                    TState,
-                    TRegistry,
-                    TNodesList,
-                    TMutations
-                  >["action"]
-              : `❌ ERROR: El nodo '${K & string}' retorna '${Exclude<TRes, void> & string}' pero no especificó 'onError'.`
-          : NodeDefinitions<
-              TState,
-              TRegistry,
-              TNodesList,
-              TMutations
-            >["action"]
+          ? TNodes[K] extends { onError: infer E }
+            ? E extends Record<string, any>
+              ? [TRes] extends [keyof E | void]
+                ? Omit<TNodes[K], "onError"> & {
+                    type: "action";
+                    onSuccess: TNodesList;
+                    onError: { [P in keyof E]: TNodesList };
+                  }
+                : `❌ ERROR: El nodo '${K & string}' retorna el error '${Exclude<TRes, void> & string}' que no está declarado en 'onError'.`
+              : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
+            : [TRes] extends [void]
+              ? TNodes[K] & NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
+              : `❌ ERROR: El nodo '${K & string}' retorna el error '${Exclude<TRes, void> & string}' pero no especificó 'onError'.`
+          : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
         : TNodes[K] extends { onError: infer E }
-          ? TNodes[K] & {
-              type: "action";
-              onSuccess: TNodesList;
-              onError: { [P in keyof E]: TNodesList };
-            } & NodeDefinitions<
-                TState,
-                TRegistry,
-                TNodesList,
-                TMutations
-              >["action"]
-          : TNodes[K] &
-              NodeDefinitions<
-                TState,
-                TRegistry,
-                TNodesList,
-                TMutations
-              >[TType]
+          ? E extends Record<string, any>
+            ? Omit<TNodes[K], "onError"> & {
+                type: "action";
+                onSuccess: TNodesList;
+                onError: { [P in keyof E]: TNodesList };
+              } & NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
+            : TNodes[K] & NodeDefinitions<TState, TRegistry, TNodesList, TMutations>[TType]
+          : TNodes[K] & NodeDefinitions<TState, TRegistry, TNodesList, TMutations>[TType]
       : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
     : {
         type: keyof NodeDefinitions<
