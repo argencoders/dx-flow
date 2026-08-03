@@ -5,7 +5,7 @@
 ## 1. Requisitos de Diseño
 
 - **Arquitectura de Grafo 100% Declarativa y Estática:** Eliminación de `ctx.next()` en favor de transiciones explícitas (`onSuccess`, `onError`, `choices`, `otherwise`, `onTimeout`). Permite análisis estático del grafo sin sorpresas en producción.
-- **Inmutabilidad en Acción:** El estado provisto a los callbacks de los nodos es estrictamente `DeepReadonly<TState>`, forzando a que cualquier mutación se realice de forma controlada a través del canal de la factoría.
+- **Inmutabilidad en Acción:** El estado provisto a los callbacks de los nodos es strictly `DeepReadonly<TState>`, forzando a que cualquier mutación se realice de forma controlada a través del canal de la factoría.
 - **Mutaciones Fuertemente Tipadas:** El método `ctx.mutate()` está acoplado de forma tiránica a los payloads reales y a las llaves de las mutaciones del proyecto (`TMutations`), impidiendo la inserción de objetos libres.
 - **Arquitectura Basada en Plugins (Cero Switch):** Quedan prohibidos los bloques `switch` monolíticos en el motor. La fisonomía de los nodos es infinitamente extensible a nivel de propiedades mediante _Declaration Merging_ sobre la interfaz central.
 - **DX Excepcional en Tipo e Inferencia:**
@@ -45,3 +45,28 @@
 - [ ] **Fase 4.6:** Registro central de handlers sin `switch` (`src/workflow/node-registry.ts` y `src/workflow/node-registry.test.ts`).
 - [ ] **Fase 4.7:** Motor principal de ejecución de workflows (`src/workflow/engine.ts` y `src/workflow/engine.test.ts`).
 - [ ] **Fase 4.8:** Test de integración e2e multinodo simulando cobro recurrente (`src/workflow/integration.test.ts`).
+
+### ⬜ Paso 5: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
+
+> **Factibilidad:** **¡Factible de inmediato desde el Paso 3!** Dado que el objeto devuelto por `factory.create()` es 100% declarativo y estático, se puede analizar la estructura del grafo sin ejecutar runtime.
+
+- [ ] **Auditoría de Alcanzabilidad (Reachability):** Algoritmo BFS/DFS que verifique que todos los nodos declarados en el grafo son alcanzables desde el nodo `start`.
+- [ ] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end`.
+- [ ] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición (`onSuccess`, `onError`, `choices`, `otherwise`, `onTimeout`) apunta.
+- [ ] **Suite de Pruebas Atómicas:** `src/workflow/analyzer.test.ts`.
+
+### ⬜ Paso 6: Exportadores Visuales e Interoperabilidad (Wishlist BPMN & Mermaid) (`src/workflow/exporters/`)
+
+> **Factibilidad:** **¡Factible de inmediato desde el Paso 3!** Cualquier instancia de grafo producida por la factoría contiene toda la metadata necesaria para traducirse a formatos visuales estándar.
+
+- [ ] **Exportador Mermaid.js (`src/workflow/exporters/mermaid.ts`):**
+  - Generar diagramas de flujo `graph TD` con nodos etiquetados por tipo (`action`, `choose` en rombo, `delay` en reloj, `end` en círculo doble).
+  - Mapear las aristas con sus condiciones (`onSuccess`, `onError[KEY]`, `otherwise`, `onTimeout`).
+- [ ] **Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):**
+  - Generar el esquema estándar XML `bpmn:definitions` compatible con **Camunda Modeler**, **bpmn-js** o la extensión de VSCode Camunda.
+  - Traducir `action` ➔ `bpmn:task` / `bpmn:serviceTask`.
+  - Traducir `choose` ➔ `bpmn:exclusiveGateway`.
+  - Traducir `delay` ➔ `bpmn:intermediateCatchEvent` (Timer).
+  - Traducir `end` ➔ `bpmn:endEvent`.
+  - Traducir las transiciones a `bpmn:sequenceFlow`.
+- [ ] **Suite de Pruebas de Exportación:** `src/workflow/exporters/mermaid.test.ts` y `bpmn.test.ts`.
