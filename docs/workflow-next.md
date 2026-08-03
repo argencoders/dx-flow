@@ -1,17 +1,17 @@
-# Motor de Orquestación de Workflows por Inyección de Funciones (Pipeline Atómico)
+# Motor de Orquestación de Workflows por Inyección de Funciones (Pipeline Atómico & Durable)
 
 ---
 
-## 1. Requisitos de Diseño
+## 1. Requisitos de Diseño y Arquitectura Avanzada
 
 - **Arquitectura de Grafo 100% Declarativa y Estática:** Eliminación de `ctx.next()` en favor de transiciones explícitas (`onSuccess`, `onError`, `choices`, `otherwise`, `onTimeout`). Permite análisis estático del grafo sin sorpresas en producción.
+- **Ejecución Durable, Suspendible y Reanudable (Stateful / Resumable Engine):** El motor soporta tres resultados fundamentales (`NEXT`, `END`, `SUSPEND`). Ante señales externas (webhooks, temporizadores duraderos o aprobaciones humanas), el flujo deshidrata su estado, suspende el bucle sin bloquear CPU y reanuda exactamente desde el nodo congelado.
 - **Inmutabilidad en Acción:** El estado provisto a los callbacks de los nodos es strictly `DeepReadonly<TState>`, forzando a que cualquier mutación se realice de forma controlada a través del canal de la factoría.
 - **Mutaciones Fuertemente Tipadas:** El método `ctx.mutate()` está acoplado de forma tiránica a los payloads reales y a las llaves de las mutaciones del proyecto (`TMutations`), impidiendo la inserción de objetos libres.
-- **Arquitectura Basada en Plugins (Cero Switch):** Quedan prohibidos los bloques `switch` monolíticos en el motor. La fisonomía de los nodos es infinitamente extensible a nivel de propiedades mediante _Declaration Merging_ sobre la interfaz central.
+- **Arquitectura Basada en Plugins (Cero Switch):** Quedan prohibidos los bloques `switch` monolíticos en el motor. La fisonomía de los nodos es infinitamente extensible mediante _Declaration Merging_ sobre la interfaz central.
 - **DX Excepcional en Tipo e Inferencia:**
-  - `type` sugiere autocompletado en el IDE (`"action" | "choose" | "delay" | "end"`).
-  - `action` infiere automáticamente el tipo de retorno desde `keyof onError | void`.
-  - `onError` infiere destinos válidos de `TNodesList` de forma nativa **sin requerir `as const`** y bloquea destinos inexistentes.
+  - `type` sugiere autocompletado en el IDE (`"action" | "choose" | "delay" | "end" | "parallel" | "subworkflow"`).
+  - Autocompletado y bloqueo de destinos inexistentes en `onSuccess`, `onError`, `choices` y `otherwise` sin requerir `as const`.
 
 ---
 
@@ -31,42 +31,38 @@
 
 ### ✅ Paso 3: La Factoría Conectora e Inferencia de Propiedades (`src/workflow/factory.ts`)
 
-- [x] Crear el configurador de orden superior `defineWorkflow<TState, TRegistry, TMutations>()`.
+- [x] Crear el configurador de orden superior `defineWorkflow<TState, TServices, TMutations>()`.
 - [x] Implementar el validador homórfico con inferencia nativa de `keyof onError`, autocompletado en `type`, `onSuccess`, `onError` y bloqueo de destinos inexistentes sin `as const`.
 - [x] Certificar con aserciones rigurosas de fallos localizados que el editor detecta destinos falsos y payloads erróneos de inmediato (`factory.test.ts`).
 
-### 🔄 Paso 4: El Orquestador en Runtime por Delegación (`src/workflow/engine.ts`)
+### 🔄 Paso 4: El Orquestador en Runtime Durable y Delegado (`src/workflow/engine.ts`)
 
 - [x] **Fase 4.1:** Handler base y contratos de ejecutor de nodos (`src/workflow/node-handler.ts` y `src/workflow/node-handler.test.ts`).
 - [x] **Fase 4.2:** Manejador atómico para nodos `action` con resolución `void -> onSuccess` y `string -> onError` (`src/workflow/node-action.ts` y `src/workflow/node-action.test.ts`).
 - [x] **Fase 4.3:** Manejador atómico para nodos `choose` con evaluación secuencial first-match y escape `otherwise` (`src/workflow/node-choose.ts` y `src/workflow/node-choose.test.ts`).
 - [x] **Fase 4.4:** Manejador atómico para nodos `delay` (`src/workflow/node-delay.ts` y `src/workflow/node-delay.test.ts`).
 - [x] **Fase 4.5:** Manejador atómico para nodos `end` (`src/workflow/node-end.ts` y `src/workflow/node-end.test.ts`).
-- [x] **Fase 4.6:** Registro central de handlers sin `switch` (`src/workflow/node-handlers.ts` y `src/workflow/node-handlers.test.ts`).
-- [ ] **Fase 4.7:** Motor principal de ejecución de workflows (`src/workflow/engine.ts` y `src/workflow/engine.test.ts`).
-- [ ] **Fase 4.8:** Test de integración e2e multinodo simulando cobro recurrente (`src/workflow/integration.test.ts`).
+- [x] **Fase 4.6:** Registro central de handlers de runtime sin `switch` (`src/workflow/node-handlers.ts` y `src/workflow/node-handlers.test.ts`).
+- [ ] **Fase 4.7:** Motor principal de ejecución durable con soporte para **Suspensión, Reanudación y Deshidratación** (`executeWorkflow`, `resumeWorkflow`, `src/workflow/engine.ts` y `src/workflow/engine.test.ts`).
+- [ ] **Fase 4.8:** Test de integración e2e multinodo simulando suspensión por webhook/evento externo (`src/workflow/integration.test.ts`).
 
-### ⬜ Paso 5: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
+### ⬜ Paso 5: Fisonomías Avanzadas y Azúcar Sintáctico (`src/workflow/features/`)
 
-> **Factibilidad:** **¡Factible de inmediato desde el Paso 3!** Dado que el objeto devuelto por `factory.create()` es 100% declarativo y estático, se puede analizar la estructura del grafo sin ejecutar runtime.
+- [ ] **Fase 5.1: Secuencias Implícitas / Pipelines (`sequence([...])`):** Azúcar sintáctico para encadenar arreglos de pasos sin necesidad de nombrar llaves explícitas para flujos lineales.
+- [ ] **Fase 5.2: Paralelismo y Concurrencia (`type: "parallel"`):** Ejecución de múltiples ramas en paralelo (`branches`) con barrera de sincronización (`onJoin`).
+- [ ] **Fase 5.3: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial.
+- [ ] **Fase 5.4: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables.
+- [ ] **Fase 5.5: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
+
+### ⬜ Paso 6: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
 
 - [ ] **Auditoría de Alcanzabilidad (Reachability):** Algoritmo BFS/DFS que verifique que todos los nodos declarados en el grafo son alcanzables desde el nodo `start`.
-- [ ] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end`.
-- [ ] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición (`onSuccess`, `onError`, `choices`, `otherwise`, `onTimeout`) apunta.
+- [ ] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end` o punto de suspensión.
+- [ ] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición apunta.
 - [ ] **Suite de Pruebas Atómicas:** `src/workflow/analyzer.test.ts`.
 
-### ⬜ Paso 6: Exportadores Visuales e Interoperabilidad (Wishlist BPMN & Mermaid) (`src/workflow/exporters/`)
+### ⬜ Paso 7: Exportadores Visuales e Interoperabilidad (Mermaid & BPMN 2.0) (`src/workflow/exporters/`)
 
-> **Factibilidad:** **¡Factible de inmediato desde el Paso 3!** Cualquier instancia de grafo producida por la factoría contiene toda la metadata necesaria para traducirse a formatos visuales estándar.
-
-- [ ] **Exportador Mermaid.js (`src/workflow/exporters/mermaid.ts`):**
-  - Generar diagramas de flujo `graph TD` con nodos etiquetados por tipo (`action`, `choose` en rombo, `delay` en reloj, `end` en círculo doble).
-  - Mapear las aristas con sus condiciones (`onSuccess`, `onError[KEY]`, `otherwise`, `onTimeout`).
-- [ ] **Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):**
-  - Generar el esquema estándar XML `bpmn:definitions` compatible con **Camunda Modeler**, **bpmn-js** o la extensión de VSCode Camunda.
-  - Traducir `action` ➔ `bpmn:task` / `bpmn:serviceTask`.
-  - Traducir `choose` ➔ `bpmn:exclusiveGateway`.
-  - Traducir `delay` ➔ `bpmn:intermediateCatchEvent` (Timer).
-  - Traducir `end` ➔ `bpmn:endEvent`.
-  - Traducir las transiciones a `bpmn:sequenceFlow`.
+- [ ] **Exportador Mermaid.js (`src/workflow/exporters/mermaid.ts`):** Generar diagramas de flujo `graph TD`.
+- [ ] **Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):** Generar XML estándar compatible con Camunda Modeler.
 - [ ] **Suite de Pruebas de Exportación:** `src/workflow/exporters/mermaid.test.ts` y `bpmn.test.ts`.
