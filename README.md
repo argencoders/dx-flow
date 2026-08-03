@@ -15,7 +15,8 @@ Estudio arquitectónico avanzado para el diseño de motores de estado e inmutabi
 - [Motor de Convención de Nomenclatura de Claves](docs/object-casing.md)
 - [Motor de Validación de Estado Profundo](docs/validation-state.md)
 - [Mutations y Event Logger](docs/mutations-pipeline.md)
+- [Motor de Workflow Durable (Fase 4)](docs/workflow-engine.md)
 
-## ⬜ Próximo Bloque Core: Factoría de Mutaciones
+## ⬜ Próximo Bloque Core: Nodos Compuestos / Control Flow (Fase 5)
 
-Planificación en progreso para el diseño del interceptor de firmas externas y validación estricta de payloads para acciones del Store.
+Planificación para el diseño de nodos de control compuesto (`sequence`, `parallel`, `repeat`).
