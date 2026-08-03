@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { executeWorkflow, resumeWorkflow } from "./engine.js";
-import { defineWorkflow, WorkflowGraph } from "./factory.js";
+import { executeWorkflow, resumeWorkflow } from "./core/engine.js";
+import { defineWorkflow, WorkflowGraph } from "./core/factory.js";
 import { defineMutations } from "../mutations/mutations.js";
 
 /**

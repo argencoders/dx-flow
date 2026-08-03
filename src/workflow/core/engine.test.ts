@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { executeWorkflow, resumeWorkflow } from "./engine.js";
 import { defineWorkflow, WorkflowGraph } from "./factory.js";
-import { createNodeHandlersRegistry } from "./node-handlers.js";
+import { createNodeHandlersRegistry } from "../node-handlers.js";
 import { NodeHandler } from "./node-handler.js";
-import { defineMutations } from "../mutations/mutations.js";
+import { defineMutations } from "../../mutations/mutations.js";
 
 interface EstadoTest {
   contador: number;

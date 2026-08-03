@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nodeDelayHandler } from "./node-delay.js";
-import { createRuntimeContext } from "./context.js";
-import { NodeHandlerParams } from "./node-handler.js";
-import { NodeDefinitions } from "./validator.js";
-import { defineWorkflow } from "./factory.js";
+import { createRuntimeContext } from "./core/context.js";
+import { NodeHandlerParams } from "./core/node-handler.js";
+import { NodeDefinitions } from "./core/validator.js";
+import { defineWorkflow } from "./core/factory.js";
 
 interface EstadoTest {
   contador: number;

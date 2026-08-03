@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../core/types-testing.js";
+import { Expect } from "../../core/types-testing.js";
 import { defineWorkflow } from "./factory.js";
 
 type NodosExistentes = "start" | "intentar_pago" | "fin_exito";

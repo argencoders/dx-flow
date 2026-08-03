@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nodeChooseHandler } from "./node-choose.js";
-import { createRuntimeContext } from "./context.js";
-import { NodeHandlerParams } from "./node-handler.js";
-import { NodeDefinitions } from "./validator.js";
+import { createRuntimeContext } from "./core/context.js";
+import { NodeHandlerParams } from "./core/node-handler.js";
+import { NodeDefinitions } from "./core/validator.js";
 
 interface EstadoTest {
   intentos: number;

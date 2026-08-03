@@ -1,5 +1,5 @@
-import { DeepReadonly } from "../core/deep-readonly.js";
-import { UnwrapMutations } from "../mutations/mutations.js";
+import { DeepReadonly } from "../../core/deep-readonly.js";
+import { UnwrapMutations } from "../../mutations/mutations.js";
 import { createRuntimeContext } from "./context.js";
 import { WorkflowGraph } from "./factory.js";
 import {
@@ -7,7 +7,7 @@ import {
   NodeHandlersMap,
   NodeHandlerResult,
 } from "./node-handler.js";
-import { defaultNodeHandlers } from "./node-handlers.js";
+import { defaultNodeHandlers } from "../node-handlers.js";
 
 /**
  * Registro de un paso individual ejecutado durante la trayectoria del workflow.

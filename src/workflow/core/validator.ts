@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../core/deep-readonly.js";
+import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
 
 /**
