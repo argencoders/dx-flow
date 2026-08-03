@@ -31,8 +31,8 @@ test("Workflow - Factory: Escenarios de Éxito de Inferencia Completa", () => {
           action: (state, ctx) => {
             ctx.mutate("INCREMENTAR_INTENTOS");
             ctx.mutate("CAMBIAR_NOMBRE", "Juan");
-            return ctx.next("pausa");
           },
+          onSuccess: "pausa",
         },
         pausa: {
           type: "delay",
@@ -83,8 +83,8 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
           action: (state, ctx) => {
             // @ts-expect-error - ❌ El error saltará aquí de forma precisa por payload de tipo erróneo
             ctx.mutate("CAMBIAR_NOMBRE", 12345);
-            return ctx.next("start");
           },
+          onSuccess: "start",
         },
       },
     });
@@ -99,8 +99,25 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
           action: (state, ctx) => {
             // @ts-expect-error - ❌ El error saltará aquí de forma precisa por llave de mutación inexistente
             ctx.mutate("MUTACION_QUE_NO_EXISTE");
-            return ctx.next("start");
           },
+          onSuccess: "start",
+        },
+      },
+    });
+  }
+
+  function testFalloErrorNoMapeadoEnAction() {
+    workflow.create({
+      id: "error_sin_mapear",
+      nodes: {
+        start: {
+          type: "action",
+          // @ts-expect-error - ❌ Falta declarar 'ERROR_PASARELA' en onError
+          action: (state, ctx): "ERROR_PASARELA" | void => {
+            return "ERROR_PASARELA";
+          },
+          onSuccess: "start",
+          onError: {},
         },
       },
     });

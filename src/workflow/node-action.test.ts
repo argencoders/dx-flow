@@ -3,19 +3,28 @@ import assert from "node:assert/strict";
 import { nodeActionHandler } from "./node-action.js";
 import { createRuntimeContext } from "./context.js";
 import { NodeHandlerParams } from "./node-handler.js";
+import { NodeDefinitions } from "./validator.js";
+import { defineWorkflow } from "./factory.js";
 
 interface EstadoTest {
   saldo: number;
 }
-type NodosTest = "inicio" | "siguiente_nodo";
+type NodosTest = "inicio" | "siguiente_nodo" | "nodo_reintento" | "nodo_renovar";
 interface RegistryTest {
-  procesar: (monto: number) => boolean;
+  procesar: (monto: number) => { ok: boolean; codigo?: string };
 }
 interface MutacionesTest {
   DEPOSITAR: (state: EstadoTest, monto: number) => void;
 }
 
-test("Workflow - NodeAction: Ejecución Síncrona y Asíncrona con Contexto y Registry", async () => {
+type NodeActionDef = NodeDefinitions<
+  EstadoTest,
+  RegistryTest,
+  NodosTest,
+  MutacionesTest
+>["action"];
+
+test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de Errores (string -> onError)", async () => {
   let mutacionRegistrada = "";
   let payloadRegistrado = 0;
 
@@ -23,7 +32,7 @@ test("Workflow - NodeAction: Ejecución Síncrona y Asíncrona con Contexto y Re
     EstadoTest,
     NodosTest,
     MutacionesTest
-  >((key, payload: any) => { // 💡 'payload: any' es inferido por contexto desde createRuntimeContext debido a los payloads heterogéneos de MutacionesTest
+  >((key, payload: any) => { // 💡 'payload: any' inferido por contexto debido a mutaciones heterogéneas
     mutacionRegistrada = String(key);
     payloadRegistrado = payload;
   });
@@ -31,100 +40,163 @@ test("Workflow - NodeAction: Ejecución Síncrona y Asíncrona con Contexto y Re
   const contextFull = {
     ...baseCtx,
     registry: {
-      procesar: (monto: number) => monto > 0,
+      procesar: (monto: number) => ({ ok: monto > 0 }),
     },
   };
 
-  // 1. Caso Síncrono
-  const nodeSincrono = {
+  // 1. Caso Acción Lineal Pura (void -> onSuccess, sin onError)
+  const nodePuro = {
     type: "action" as const,
-    action: (
-      state: EstadoTest,
-      ctx: typeof contextFull,
-    ) => {
-      const ok = ctx.registry.procesar(100);
-      if (ok) {
-        ctx.mutate("DEPOSITAR", 100);
-      }
-      return ctx.next("siguiente_nodo");
+    action: (state: EstadoTest, ctx: typeof contextFull) => {
+      ctx.mutate("DEPOSITAR", 100);
+      // Retorna void implícito -> va a onSuccess
     },
+    onSuccess: "siguiente_nodo" as const,
   };
 
-  const paramsSincronos: NodeHandlerParams<
+  const paramsBase: NodeHandlerParams<
     EstadoTest,
     RegistryTest,
     NodosTest,
     MutacionesTest
   > = {
-    node: nodeSincrono,
+    node: nodePuro,
     state: { saldo: 50 },
     context: contextFull,
   };
 
-  const resSincrono = await nodeActionHandler(paramsSincronos);
-
-  assert.equal(resSincrono.type, "NEXT");
-  if (resSincrono.type === "NEXT") {
-    assert.equal(resSincrono.target, "siguiente_nodo");
+  const resPuro = await nodeActionHandler(paramsBase);
+  assert.equal(resPuro.type, "NEXT");
+  if (resPuro.type === "NEXT") {
+    assert.equal(resPuro.target, "siguiente_nodo");
   }
   assert.equal(mutacionRegistrada, "DEPOSITAR");
   assert.equal(payloadRegistrado, 100);
 
-  // 2. Caso Asíncrono (Promise)
-  const nodeAsincrono = {
+  // 2. Caso Acción con Manejo de Errores (onError)
+  const nodeConErrores = {
     type: "action" as const,
-    action: async (
-      state: EstadoTest,
-      ctx: typeof contextFull,
-    ) => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      ctx.mutate("DEPOSITAR", 200);
-      return ctx.next("siguiente_nodo");
+    action: async (state: EstadoTest, ctx: typeof contextFull) => {
+      if (state.saldo < 100) {
+        return "FONDOS_INSUFICIENTES";
+      }
+      ctx.mutate("DEPOSITAR", 50);
+    },
+    onSuccess: "siguiente_nodo" as const,
+    onError: {
+      FONDOS_INSUFICIENTES: "nodo_reintento" as const,
     },
   };
 
-  const resAsincrono = await nodeActionHandler({
-    ...paramsSincronos,
-    node: nodeAsincrono,
+  // 2a. Éxito en nodo con onError (saldo >= 100 -> void -> onSuccess)
+  const resExito = await nodeActionHandler({
+    ...paramsBase,
+    node: nodeConErrores,
+    state: { saldo: 150 },
   });
-
-  assert.equal(resAsincrono.type, "NEXT");
-  if (resAsincrono.type === "NEXT") {
-    assert.equal(resAsincrono.target, "siguiente_nodo");
+  assert.equal(resExito.type, "NEXT");
+  if (resExito.type === "NEXT") {
+    assert.equal(resExito.target, "siguiente_nodo");
   }
-  assert.equal(payloadRegistrado, 200);
+
+  // 2b. Error mapeado en nodo con onError (saldo < 100 -> "FONDOS_INSUFICIENTES" -> onError.FONDOS_INSUFICIENTES)
+  const resError = await nodeActionHandler({
+    ...paramsBase,
+    node: nodeConErrores,
+    state: { saldo: 20 },
+  });
+  assert.equal(resError.type, "NEXT");
+  if (resError.type === "NEXT") {
+    assert.equal(resError.target, "nodo_reintento");
+  }
 });
 
-test("Workflow - NodeAction: Manejo de Errores de Runtime", async () => {
+test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compilacion (@ts-expect-error)", () => {
+  function testFalloTipado() {
+    const wf = defineWorkflow<
+      EstadoTest,
+      RegistryTest,
+      MutacionesTest
+    >();
+
+    // ❌ ERROR 1: Acción retorna un string de error pero el nodo NO declaró 'onError'
+    wf.create({
+      id: "err1",
+      nodes: {
+        start: {
+          type: "action",
+          // @ts-expect-error - Falta onError cuando action retorna string de error
+          action: () => "FONDOS_INSUFICIENTES",
+          onSuccess: "siguiente_nodo",
+        },
+        siguiente_nodo: { type: "end", status: "OK" },
+      },
+    });
+
+    // ❌ ERROR 2: 'onError' declara 'FONDOS_INSUFICIENTES', pero la función retorna 'TARJETA_EXPIRADA'
+    wf.create({
+      id: "err2",
+      nodes: {
+        start: {
+          type: "action",
+          action: (): "TARJETA_EXPIRADA" | void => "TARJETA_EXPIRADA",
+          onSuccess: "siguiente_nodo",
+          // @ts-expect-error - onError no mapea la llave 'TARJETA_EXPIRADA'
+          onError: {
+            FONDOS_INSUFICIENTES: "nodo_reintento",
+          },
+        },
+        siguiente_nodo: { type: "end", status: "OK" },
+        nodo_reintento: { type: "end", status: "RETRY" },
+      },
+    });
+
+    // ❌ ERROR 3: Falta la propiedad requerida 'onSuccess'
+    wf.create({
+      id: "err3",
+      nodes: {
+        // @ts-expect-error - Falta la propiedad requerida onSuccess
+        start: {
+          type: "action",
+          action: () => {},
+        },
+      },
+    });
+  }
+});
+
+test("Workflow - NodeAction: Escenarios de Fallo de Runtime", async () => {
   const baseCtx = createRuntimeContext<
     EstadoTest,
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: { procesar: () => true } };
+  const contextFull = { ...baseCtx, registry: { procesar: () => ({ ok: true }) } };
 
-  // 1. Sin función action
+  // 1. Sin propiedad onSuccess
   await assert.rejects(
     async () => {
       await nodeActionHandler({
-        node: { type: "action" },
+        node: { type: "action", action: () => {} },
         state: { saldo: 0 },
         context: contextFull,
       });
     },
     {
       message:
-        "❌ ERROR: El nodo de tipo 'action' no contiene una función 'action' ejecutable.",
+        "❌ ERROR: El nodo de tipo 'action' debe especificar un nodo de destino 'onSuccess'.",
     },
   );
 
-  // 2. Función action devuelve resultado nulo o inválido
+  // 2. La función devuelve una clave de error no mapeada en onError
   await assert.rejects(
     async () => {
       await nodeActionHandler({
         node: {
           type: "action",
-          action: () => null as any,
+          action: () => "ERROR_NO_MAPEADO",
+          onSuccess: "siguiente_nodo",
+          onError: { FONDOS_INSUFICIENTES: "nodo_reintento" },
         },
         state: { saldo: 0 },
         context: contextFull,
@@ -132,7 +204,7 @@ test("Workflow - NodeAction: Manejo de Errores de Runtime", async () => {
     },
     {
       message:
-        "❌ ERROR: La función del nodo 'action' debe devolver un resultado de navegación válido generado por context.next().",
+        "❌ ERROR: El código de error 'ERROR_NO_MAPEADO' devuelto por 'action' no está mapeado en 'onError'.",
     },
   );
 });
