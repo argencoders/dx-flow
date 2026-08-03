@@ -7,7 +7,7 @@ interface EstadoSimulado {
   nombre: string;
   esVip: boolean;
 }
-const registroMock = {
+const serviciosMock = {
   "pasarela.cobrar": async (ctx: any) => ({ success: true, data: {} }),
 };
 
@@ -18,7 +18,7 @@ interface MutacionesSimuladas {
 
 const workflow = defineWorkflow<
   EstadoSimulado,
-  typeof registroMock,
+  typeof serviciosMock,
   MutacionesSimuladas
 >();
 

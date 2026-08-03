@@ -10,12 +10,12 @@ interface EstadoTest {
   saldo: number;
 }
 type NodosTest = "inicio" | "fin_exito" | "fin_error";
-interface RegistryTest {}
+interface ServicesTest {}
 interface MutacionesTest {}
 
 type NodeEndDef = NodeDefinitions<
   EstadoTest,
-  RegistryTest,
+  ServicesTest,
   NodosTest,
   MutacionesTest
 >["end"];
@@ -26,7 +26,7 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: {} };
+  const contextFull = { ...baseCtx, services: {} };
 
   // 1. Caso Éxito
   const nodeEndExito: NodeEndDef = {
@@ -36,7 +36,7 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
 
   const paramsExito: NodeHandlerParams<
     EstadoTest,
-    RegistryTest,
+    ServicesTest,
     NodosTest,
     MutacionesTest
   > = {
@@ -71,7 +71,7 @@ test("Workflow - NodeEnd: Escenarios de Fallo Detectados en Tiempo de Compilacio
   function testFalloTipado() {
     const wf = defineWorkflow<
       EstadoTest,
-      RegistryTest,
+      ServicesTest,
       MutacionesTest
     >();
 
@@ -106,7 +106,7 @@ test("Workflow - NodeEnd: Escenarios de Fallo de Runtime", async () => {
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: {} };
+  const contextFull = { ...baseCtx, services: {} };
 
   // 1. Falta la propiedad status
   await assert.rejects(

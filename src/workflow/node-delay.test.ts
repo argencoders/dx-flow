@@ -10,12 +10,12 @@ interface EstadoTest {
   contador: number;
 }
 type NodosTest = "inicio" | "espera" | "siguiente_nodo";
-interface RegistryTest {}
+interface ServicesTest {}
 interface MutacionesTest {}
 
 type NodeDelayDef = NodeDefinitions<
   EstadoTest,
-  RegistryTest,
+  ServicesTest,
   NodosTest,
   MutacionesTest
 >["delay"];
@@ -26,7 +26,7 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: {} };
+  const contextFull = { ...baseCtx, services: {} };
 
   const nodeDelay: NodeDelayDef = {
     type: "delay",
@@ -42,7 +42,7 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
 
   const paramsInyectado: NodeHandlerParams<
     EstadoTest,
-    RegistryTest,
+    ServicesTest,
     NodosTest,
     MutacionesTest
   > = {
@@ -68,7 +68,7 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
 
   const paramsDefault: NodeHandlerParams<
     EstadoTest,
-    RegistryTest,
+    ServicesTest,
     NodosTest,
     MutacionesTest
   > = {
@@ -88,7 +88,7 @@ test("Workflow - NodeDelay: Escenarios de Fallo Detectados en Tiempo de Compilac
   function testFalloTipado() {
     const wf = defineWorkflow<
       EstadoTest,
-      RegistryTest,
+      ServicesTest,
       MutacionesTest
     >();
 
@@ -140,7 +140,7 @@ test("Workflow - NodeDelay: Escenarios de Fallo de Runtime", async () => {
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: {} };
+  const contextFull = { ...baseCtx, services: {} };
 
   // 1. durationMs no es un número
   await assert.rejects(

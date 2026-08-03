@@ -10,14 +10,14 @@ interface EstadoTest {
   esVip: boolean;
 }
 type NodosTest = "nodo_reintento" | "nodo_vip" | "nodo_cancelar" | "nodo_error_fallback";
-interface RegistryTest {}
+interface ServicesTest {}
 interface MutacionesTest {
   REGISTRAR: (state: EstadoTest) => void;
 }
 
 type NodeChooseDef = NodeDefinitions<
   EstadoTest,
-  RegistryTest,
+  ServicesTest,
   NodosTest,
   MutacionesTest
 >["choose"];
@@ -28,7 +28,7 @@ test("Workflow - NodeChoose: Evaluación Secuencial (First-Match) y Ruta de Esca
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: {} };
+  const contextFull = { ...baseCtx, services: {} };
 
   const nodeChoose: NodeChooseDef = {
     type: "choose",
@@ -47,7 +47,7 @@ test("Workflow - NodeChoose: Evaluación Secuencial (First-Match) y Ruta de Esca
 
   const paramsBase: NodeHandlerParams<
     EstadoTest,
-    RegistryTest,
+    ServicesTest,
     NodosTest,
     MutacionesTest
   > = {
@@ -114,7 +114,7 @@ test("Workflow - NodeChoose: Manejo de Errores en Runtime", async () => {
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: {} };
+  const contextFull = { ...baseCtx, services: {} };
 
   // 1. Sin array choices
   await assert.rejects(

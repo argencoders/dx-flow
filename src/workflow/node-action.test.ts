@@ -10,7 +10,7 @@ interface EstadoTest {
   saldo: number;
 }
 type NodosTest = "inicio" | "siguiente_nodo" | "nodo_reintento" | "nodo_renovar";
-interface RegistryTest {
+interface ServicesTest {
   procesar: (monto: number) => { ok: boolean; codigo?: string };
 }
 interface MutacionesTest {
@@ -19,7 +19,7 @@ interface MutacionesTest {
 
 type NodeActionDef = NodeDefinitions<
   EstadoTest,
-  RegistryTest,
+  ServicesTest,
   NodosTest,
   MutacionesTest
 >["action"];
@@ -39,7 +39,7 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
 
   const contextFull = {
     ...baseCtx,
-    registry: {
+    services: {
       procesar: (monto: number) => ({ ok: monto > 0 }),
     },
   };
@@ -56,7 +56,7 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
 
   const paramsBase: NodeHandlerParams<
     EstadoTest,
-    RegistryTest,
+    ServicesTest,
     NodosTest,
     MutacionesTest
   > = {
@@ -115,7 +115,7 @@ test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compila
   function testFalloTipado() {
     const wf = defineWorkflow<
       EstadoTest,
-      RegistryTest,
+      ServicesTest,
       MutacionesTest
     >();
 
@@ -171,7 +171,7 @@ test("Workflow - NodeAction: Escenarios de Fallo de Runtime", async () => {
     NodosTest,
     MutacionesTest
   >(() => {});
-  const contextFull = { ...baseCtx, registry: { procesar: () => ({ ok: true }) } };
+  const contextFull = { ...baseCtx, services: { procesar: () => ({ ok: true }) } };
 
   // 1. Sin propiedad onSuccess
   await assert.rejects(

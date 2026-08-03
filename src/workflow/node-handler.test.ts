@@ -13,7 +13,7 @@ interface EstadoTest {
   contador: number;
 }
 type NodosTest = "nodo_a" | "nodo_b";
-interface RegistryTest {
+interface ServicesTest {
   miServicio: () => string;
 }
 interface MutacionesTest {
@@ -24,7 +24,7 @@ test("Workflow - NodeHandler: Uso Correcto y Validación Estática de NodeHandle
   function testParamsCorrectos() {
     type Params = NodeHandlerParams<
       EstadoTest,
-      RegistryTest,
+      ServicesTest,
       NodosTest,
       MutacionesTest
     >;
@@ -40,7 +40,7 @@ test("Workflow - NodeHandler: Uso Correcto y Validación Estática de NodeHandle
       state: { contador: 10 },
       context: {
         ...baseCtx,
-        registry: { miServicio: () => "OK" },
+        services: { miServicio: () => "OK" },
       },
       delayFn: async (ms) => {},
     };
@@ -48,9 +48,9 @@ test("Workflow - NodeHandler: Uso Correcto y Validación Estática de NodeHandle
     // Verificación estática del estado inmutable
     type CheckState = Expect<typeof paramsValidos.state.contador, number>;
 
-    // Verificación estática del servicio del registry
-    const resServicio = paramsValidos.context.registry.miServicio();
-    type CheckRegistry = Expect<typeof resServicio, string>;
+    // Verificación estática del servicio
+    const resServicio = paramsValidos.context.services.miServicio();
+    type CheckServices = Expect<typeof resServicio, string>;
   }
 });
 
@@ -70,7 +70,7 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
   function testFalloParams() {
     type Params = NodeHandlerParams<
       EstadoTest,
-      RegistryTest,
+      ServicesTest,
       NodosTest,
       MutacionesTest
     >;
@@ -87,7 +87,7 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
       state: { contador: 5 },
       context: {
         ...baseCtx,
-        registry: { miServicio: () => "OK" },
+        services: { miServicio: () => "OK" },
       },
     };
     // @ts-expect-error - No se puede mutar una propiedad readonly
@@ -101,15 +101,15 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
     // @ts-expect-error
     params.context.mutate("INCREMENTAR", "texto_invalido");
 
-    // ❌ ERROR: Servicio inexistente en el registry
+    // ❌ ERROR: Servicio inexistente en el objeto services
     // @ts-expect-error
-    params.context.registry.servicioInexistente();
+    params.context.services.servicioInexistente();
   }
 
   function testFalloHandler() {
     type TestHandler = NodeHandler<
       EstadoTest,
-      RegistryTest,
+      ServicesTest,
       NodosTest,
       MutacionesTest
     >;
@@ -143,17 +143,17 @@ test("Workflow - NodeHandler: Estructura de NodeHandlersMap y Ejecución Atómic
 
   const contextFull = {
     ...baseCtx,
-    registry: { miServicio: () => "OK" },
+    services: { miServicio: () => "OK" },
   };
 
   const map: NodeHandlersMap<
     EstadoTest,
-    RegistryTest,
+    ServicesTest,
     NodosTest,
     MutacionesTest
   > = {
-    custom: async ({ state, context }: NodeHandlerParams<EstadoTest, RegistryTest, NodosTest, MutacionesTest>) => {
-      const info = context.registry.miServicio();
+    custom: async ({ state, context }: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest, MutacionesTest>) => {
+      const info = context.services.miServicio();
       context.mutate("INCREMENTAR", state.contador + (info === "OK" ? 10 : 0));
       return { type: "NEXT", target: "nodo_b" };
     },

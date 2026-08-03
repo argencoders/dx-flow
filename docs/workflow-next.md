@@ -42,7 +42,7 @@
 - [x] **Fase 4.3:** Manejador atómico para nodos `choose` con evaluación secuencial first-match y escape `otherwise` (`src/workflow/node-choose.ts` y `src/workflow/node-choose.test.ts`).
 - [x] **Fase 4.4:** Manejador atómico para nodos `delay` (`src/workflow/node-delay.ts` y `src/workflow/node-delay.test.ts`).
 - [x] **Fase 4.5:** Manejador atómico para nodos `end` (`src/workflow/node-end.ts` y `src/workflow/node-end.test.ts`).
-- [ ] **Fase 4.6:** Registro central de handlers sin `switch` (`src/workflow/node-registry.ts` y `src/workflow/node-registry.test.ts`).
+- [x] **Fase 4.6:** Registro central de handlers sin `switch` (`src/workflow/node-handlers.ts` y `src/workflow/node-handlers.test.ts`).
 - [ ] **Fase 4.7:** Motor principal de ejecución de workflows (`src/workflow/engine.ts` y `src/workflow/engine.test.ts`).
 - [ ] **Fase 4.8:** Test de integración e2e multinodo simulando cobro recurrente (`src/workflow/integration.test.ts`).
 

@@ -6,7 +6,7 @@ type NodosExistentes = "start" | "intentar_pago" | "fin_exito";
 interface EstadoSimulado {
   intentos: number;
 }
-type RegistroVacio = {};
+type ServiciosVacios = {};
 interface MutacionesVacinas {}
 
 // ============================================================================
@@ -16,7 +16,7 @@ interface MutacionesVacinas {}
 declare module "./validator.js" {
   interface NodeDefinitions<
     TState,
-    TRegistry,
+    TServices,
     TNodesList extends string,
     TMutations,
   > {
@@ -31,7 +31,7 @@ declare module "./validator.js" {
 // Inicializamos la factoría compartida para el test de validadores
 const workflow = defineWorkflow<
   EstadoSimulado,
-  RegistroVacio,
+  ServiciosVacios,
   MutacionesVacinas
 >();
 

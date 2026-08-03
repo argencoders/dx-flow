@@ -3,7 +3,7 @@ import { NodeDefinitions, ValidateGraphNodes } from "./validator.js";
 /**
  * Factoría de workflows con inyección de estado, acciones IoC y mutaciones seguras.
  */
-export const defineWorkflow = <TState, TRegistry, TMutations>() => {
+export const defineWorkflow = <TState, TServices, TMutations>() => {
   return {
     /**
      * Construye y blinda la consistencia lógica de un Grafo de Workflow.
@@ -11,7 +11,7 @@ export const defineWorkflow = <TState, TRegistry, TMutations>() => {
     create: <
       TNodes extends {
         [K in keyof TNodes]: {
-          type: keyof NodeDefinitions<TState, TRegistry, any, TMutations>;
+          type: keyof NodeDefinitions<TState, TServices, any, TMutations>;
         };
       },
     >(graph: {
@@ -20,7 +20,7 @@ export const defineWorkflow = <TState, TRegistry, TMutations>() => {
         ValidateGraphNodes<
           TNodes,
           TState,
-          TRegistry,
+          TServices,
           keyof TNodes & string,
           TMutations
         >;

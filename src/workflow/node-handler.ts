@@ -13,14 +13,14 @@ export type NodeHandlerResult<TNodesList extends string> =
  */
 export interface NodeHandlerParams<
   TState,
-  TRegistry,
+  TServices,
   TNodesList extends string,
   TMutations,
 > {
   node: any;
   state: DeepReadonly<TState>;
   context: WorkflowContext<TState, TNodesList, TMutations> & {
-    registry: TRegistry;
+    services: TServices;
   };
   delayFn?: (ms: number) => Promise<void>;
 }
@@ -30,11 +30,11 @@ export interface NodeHandlerParams<
  */
 export type NodeHandler<
   TState,
-  TRegistry,
+  TServices,
   TNodesList extends string,
   TMutations,
 > = (
-  params: NodeHandlerParams<TState, TRegistry, TNodesList, TMutations>,
+  params: NodeHandlerParams<TState, TServices, TNodesList, TMutations>,
 ) => Promise<NodeHandlerResult<TNodesList>> | NodeHandlerResult<TNodesList>;
 
 /**
@@ -42,7 +42,7 @@ export type NodeHandler<
  */
 export type NodeHandlersMap<
   TState,
-  TRegistry,
+  TServices,
   TNodesList extends string,
   TMutations,
-> = Record<string, NodeHandler<TState, TRegistry, TNodesList, TMutations>>;
+> = Record<string, NodeHandler<TState, TServices, TNodesList, TMutations>>;
