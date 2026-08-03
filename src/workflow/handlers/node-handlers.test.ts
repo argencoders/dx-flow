@@ -15,11 +15,14 @@ type NodosTest = "inicio" | "siguiente_nodo";
 interface ServicesTest {}
 interface MutacionesTest {}
 
-test("Workflow - NodeHandlersRegistry: Contiene los handlers nativos ('action', 'choose', 'delay', 'end')", async () => {
+test("Workflow - NodeHandlersRegistry: Contiene los handlers nativos ('action', 'choose', 'delay', 'end', 'sequence', 'repeat', 'parallel')", async () => {
   assert.equal(typeof defaultNodeHandlers.action, "function");
   assert.equal(typeof defaultNodeHandlers.choose, "function");
   assert.equal(typeof defaultNodeHandlers.delay, "function");
   assert.equal(typeof defaultNodeHandlers.end, "function");
+  assert.equal(typeof defaultNodeHandlers.sequence, "function");
+  assert.equal(typeof defaultNodeHandlers.repeat, "function");
+  assert.equal(typeof defaultNodeHandlers.parallel, "function");
 
   const baseCtx = createRuntimeContext<
     EstadoTest,

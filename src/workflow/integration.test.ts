@@ -495,3 +495,82 @@ test("Integration E2E: Flujo de Fallo en Reanudación (Webhook con Pago Rechazad
     );
   }
 });
+
+test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel", async () => {
+  interface EstadoCompuesto {
+    contador: number;
+    procesado: boolean;
+  }
+
+  const mutacionesCompuestas = defineMutations<EstadoCompuesto>().create({
+    INCREMENTAR: (state) => ({ contador: state.contador + 1 }),
+    MARCAR_PROCESADO: () => ({ procesado: true }),
+  });
+
+  const wfCompuesto = defineWorkflow<
+    EstadoCompuesto,
+    Record<string, never>,
+    typeof mutacionesCompuestas
+  >();
+
+  const graph = wfCompuesto.create({
+    id: "flujo_compuesto_e2e",
+    nodes: {
+      start: {
+        type: "sequence",
+        steps: ["paso_inicial", "paso_secundario"],
+        onSuccess: "bucle_iterativo",
+      },
+      paso_inicial: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate("INCREMENTAR");
+        },
+        onSuccess: "paso_secundario",
+      },
+      paso_secundario: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate("INCREMENTAR");
+        },
+        onSuccess: "bucle_iterativo",
+      },
+      bucle_iterativo: {
+        type: "repeat",
+        target: "paso_inicial",
+        until: (state) => state.contador >= 5,
+        onSuccess: "seccion_paralela",
+      },
+      seccion_paralela: {
+        type: "parallel",
+        branches: ["rama_final"],
+        onSuccess: "fin_exito",
+      },
+      rama_final: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate("MARCAR_PROCESADO");
+        },
+        onSuccess: "fin_exito",
+      },
+      fin_exito: {
+        type: "end",
+        status: "COMPUESTO_OK",
+      },
+    },
+  });
+
+  const res = await executeWorkflow({
+    graph,
+    initialState: { contador: 0, procesado: false },
+    services: {},
+    mutations: mutacionesCompuestas,
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "COMPUESTO_OK");
+    assert.equal(res.finalState.contador, 6);
+    assert.equal(res.finalState.procesado, true);
+  }
+});

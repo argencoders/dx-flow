@@ -3,6 +3,9 @@ import { nodeActionHandler } from "./node-action.js";
 import { nodeChooseHandler } from "./node-choose.js";
 import { nodeDelayHandler } from "./node-delay.js";
 import { nodeEndHandler } from "./node-end.js";
+import { nodeSequenceHandler } from "./node-sequence.js";
+import { nodeRepeatHandler } from "./node-repeat.js";
+import { nodeParallelHandler } from "./node-parallel.js";
 
 /**
  * Registro predeterminado de estrategias de ejecución de nodos del motor (Arquitectura de Plugins sin switch).
@@ -12,6 +15,9 @@ export const defaultNodeHandlers: NodeHandlersMap<any, any, any, any> = {
   choose: nodeChooseHandler,
   delay: nodeDelayHandler,
   end: nodeEndHandler,
+  sequence: nodeSequenceHandler,
+  repeat: nodeRepeatHandler,
+  parallel: nodeParallelHandler,
 };
 
 /**

@@ -42,6 +42,27 @@ export interface NodeDefinitions<
     type: "end";
     status: string;
   };
+
+  sequence: {
+    type: "sequence";
+    steps: Array<TNodesList>;
+    onSuccess: TNodesList;
+  };
+
+  repeat: {
+    type: "repeat";
+    target: TNodesList;
+    until?: (state: DeepReadonly<TState>) => boolean;
+    count?: number | ((state: DeepReadonly<TState>) => number);
+    onSuccess: TNodesList;
+  };
+
+  parallel: {
+    type: "parallel";
+    branches: Array<TNodesList>;
+    onSuccess: TNodesList;
+    onError?: Record<string, TNodesList>;
+  };
 }
 
 /**
