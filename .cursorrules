@@ -1,21 +1,28 @@
 # Directivas del Proyecto Workflow Engine
 
-## 1. Regla Estricta de Terminal & Testing
+## 1. Rol Activo: Auditor Proactivo de DX (Developer Experience)
+- La IA asume la misión de **Auditor Principal de DX**. Antes de proponer o escribir cualquier código, la IA debe preguntarse:
+  1. ¿El desarrollador tiene que escribir algún tipo genérico manual en la llamada? (Debe eliminarse en favor de inferencia transparente).
+  2. ¿Existe algún parámetro o callback redundante (como un reducer manual) que se pueda derivar automáticamente de módulos preexistentes?
+  3. ¿El autocompletado en el IDE funciona en el primer nivel de profundidad al presionar `Ctrl+Space`?
+  4. Si una API resulta verbosa o requiere boilerplates imperativos, la IA debe proponer activamente la simplificación antes de codificar.
+
+## 2. Regla Estricta de Terminal & Testing
 - NUNCA ejecutes comandos de terminal para build o test (`npm test`, `npm run build`, `tsx`). El usuario se encarga de ejecutarlos manualmente en su propia consola.
 
-## 2. Inferencia Pura y Prohibición de 'any' / 'as const' Sospechosos
+## 3. Inferencia Pura y Prohibición de 'any' / 'as const' Sospechosos
 - Cualquier uso de `any` suelto o de aserciones de tipo forzadas como `as const` o `as any` se considera SOSPECHOSO. La inferencia debe ser nativa, estática y homomórfica a través del compilador de TypeScript.
 - Solo se permite `any` en límites de metaprogramación/runtime internos estrictamente justificados, manteniendo la API pública 100% tipada.
 
-## 3. DX y Tipado Homomórfico (Inferencia Incondicional)
+## 4. DX e Inferencia Incondicional
 - Priorizar la Developer Experience (DX). Los tipos deben inferirse de forma transparente en el IDE desde el objeto principal (`WorkflowGraph`) sin obligar al desarrollador a escribir tipos genéricos repetidos ni reducers manuales.
 - Queda PROHIBIDO requerir callbacks `reducer` manuales en runtime. Las mutaciones deben integrarse directamente con el módulo `defineMutations<TState>().create(...)` de `src/mutations/mutations.ts`.
 
-## 4. Control Atómico y Explicación Previa
+## 5. Control Atómico y Explicación Previa
 - Trabajar en sub-etapas pequeñas y atómicas. Explicar el diagnóstico y los cambios antes de modificar cualquier archivo.
 
-## 5. Hook Observador de Mutaciones (`onMutation`)
+## 6. Hook Observador de Mutaciones (`onMutation`)
 - `onMutation` es EXCLUSIVAMENTE un hook observador/auditoría. Recibe `(key, payload, newState)`. Su presencia es opcional y no debe alterar la evolución del estado.
 
-## 6. Arquitectura Extensible de Nodos (Cero Switch)
+## 7. Arquitectura Extensible de Nodos (Cero Switch)
 - Prohibidos los bloques `switch` monolíticos en el motor. La adición de nuevos tipos de nodos debe realizarse mediante _Declaration Merging_ en `NodeDefinitions` (`validator.ts`) y registrando su handler atómico en `NodeHandlersMap`.
