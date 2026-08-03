@@ -60,7 +60,12 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
         pausa: {
           type: "delay",
           durationMs: 1000,
-          onTimeout: "fin_exito",
+          onTimeout: "esperar_confirmacion",
+        },
+        esperar_confirmacion: {
+          type: "suspend",
+          eventName: "INCREMENTAR_INTENTOS",
+          onResume: "fin_exito",
         },
         fin_exito: { type: "end", status: "SUCCESS" },
         fin_fallo: { type: "end", status: "FAILED" },

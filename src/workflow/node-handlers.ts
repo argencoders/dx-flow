@@ -2,6 +2,7 @@ import { NodeHandlersMap } from "./node-handler.js";
 import { nodeActionHandler } from "./node-action.js";
 import { nodeChooseHandler } from "./node-choose.js";
 import { nodeDelayHandler } from "./node-delay.js";
+import { nodeSuspendHandler } from "./node-suspend.js";
 import { nodeEndHandler } from "./node-end.js";
 
 /**
@@ -11,6 +12,7 @@ export const defaultNodeHandlers: NodeHandlersMap<any, any, any, any> = {
   action: nodeActionHandler,
   choose: nodeChooseHandler,
   delay: nodeDelayHandler,
+  suspend: nodeSuspendHandler,
   end: nodeEndHandler,
 };
 

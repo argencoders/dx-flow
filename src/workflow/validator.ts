@@ -37,6 +37,12 @@ export interface NodeDefinitions<
     onTimeout: TNodesList;
   };
 
+  suspend: {
+    type: "suspend";
+    eventName: keyof TMutations & string;
+    onResume: TNodesList;
+  };
+
   end: {
     type: "end";
     status: string;

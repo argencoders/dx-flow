@@ -33,20 +33,21 @@ export interface WorkflowContext<
         : [mutationKey: M, payload: PL]
       : never
   ): void;
+
+  /**
+   * Payload opcional inyectado cuando el workflow se reanuda tras recibir un evento o señal externa.
+   */
+  signalPayload?: any;
 }
 
 /**
  * Implementación del constructor del contexto para el uso del motor en runtime.
- * 💡 CORRECCIÓN EXTRAORDINARIA: El inicializador ahora arrastra TMutations y tipa
- *    correctamente el despachador de eventos en tiempo de ejecución.
  */
 export function createRuntimeContext<
   TState,
   TNodesList extends string,
   TMutations,
 >(
-  // 💡 USUAL DE 'any': El payload es 'any' en la firma del despachador de runtime porque cada mutación
-  // en TMutations posee un tipo de payload heterogéneo (number, string, objetos, o undefined).
   onMutation: (mutationKey: keyof TMutations, payload: any) => void,
 ): WorkflowContext<TState, TNodesList, TMutations> {
   return {
@@ -54,8 +55,6 @@ export function createRuntimeContext<
       __type_navigation__: "NEXT_NODE",
       target: destination,
     }),
-    // 💡 USUAL DE 'any[]': Se utilizan rest parameters en tuple args para soportar tanto mutaciones
-    // que reciben payload como aquellas que no requieren argumento.
     mutate: <M extends keyof TMutations>(...args: any[]): void => {
       const [mutationKey, payload] = args;
       onMutation(mutationKey, payload);
