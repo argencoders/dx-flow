@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { nodeDelayHandler } from "./node-delay.js";
 import { createRuntimeContext } from "./context.js";
 import { NodeHandlerParams } from "./node-handler.js";
+import { NodeDefinitions } from "./validator.js";
 import { defineWorkflow } from "./factory.js";
 
 interface EstadoTest {
@@ -12,6 +13,13 @@ type NodosTest = "inicio" | "espera" | "siguiente_nodo";
 interface RegistryTest {}
 interface MutacionesTest {}
 
+type NodeDelayDef = NodeDefinitions<
+  EstadoTest,
+  RegistryTest,
+  NodosTest,
+  MutacionesTest
+>["delay"];
+
 test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback por Defecto", async () => {
   const baseCtx = createRuntimeContext<
     EstadoTest,
@@ -20,10 +28,10 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
   >(() => {});
   const contextFull = { ...baseCtx, registry: {} };
 
-  const nodeDelay = {
-    type: "delay" as const,
+  const nodeDelay: NodeDelayDef = {
+    type: "delay",
     durationMs: 5000,
-    onTimeout: "siguiente_nodo" as const,
+    onTimeout: "siguiente_nodo",
   };
 
   // 1. Ejecución con delayFn inyectado (Mock para simulación síncrona/instantánea)
@@ -52,10 +60,10 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
   }
 
   // 2. Ejecución con delayFn por defecto (setTimeout real con duración breve)
-  const nodeDelayCorto = {
-    type: "delay" as const,
+  const nodeDelayCorto: NodeDelayDef = {
+    type: "delay",
     durationMs: 10,
-    onTimeout: "siguiente_nodo" as const,
+    onTimeout: "siguiente_nodo",
   };
 
   const paramsDefault: NodeHandlerParams<

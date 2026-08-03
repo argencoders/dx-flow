@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { nodeEndHandler } from "./node-end.js";
 import { createRuntimeContext } from "./context.js";
 import { NodeHandlerParams } from "./node-handler.js";
+import { NodeDefinitions } from "./validator.js";
 import { defineWorkflow } from "./factory.js";
 
 interface EstadoTest {
@@ -11,6 +12,13 @@ interface EstadoTest {
 type NodosTest = "inicio" | "fin_exito" | "fin_error";
 interface RegistryTest {}
 interface MutacionesTest {}
+
+type NodeEndDef = NodeDefinitions<
+  EstadoTest,
+  RegistryTest,
+  NodosTest,
+  MutacionesTest
+>["end"];
 
 test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END status)", async () => {
   const baseCtx = createRuntimeContext<
@@ -21,8 +29,8 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
   const contextFull = { ...baseCtx, registry: {} };
 
   // 1. Caso Éxito
-  const nodeEndExito = {
-    type: "end" as const,
+  const nodeEndExito: NodeEndDef = {
+    type: "end",
     status: "COMPLETADO",
   };
 
@@ -44,8 +52,8 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
   }
 
   // 2. Caso Error de Negocio / Cancelado
-  const nodeEndError = {
-    type: "end" as const,
+  const nodeEndError: NodeEndDef = {
+    type: "end",
     status: "FONDOS_INSUFICIENTES",
   };
 
