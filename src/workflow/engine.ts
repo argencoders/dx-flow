@@ -1,5 +1,7 @@
 import { DeepReadonly } from "../core/deep-readonly.js";
+import { UnwrapMutations } from "../mutations/mutations.js";
 import { createRuntimeContext } from "./context.js";
+import { WorkflowGraph } from "./factory.js";
 import {
   NodeHandler,
   NodeHandlersMap,
@@ -45,7 +47,7 @@ export type WorkflowExecutionResult<
     };
 
 /**
- * Opciones para ejecutar un workflow en runtime.
+ * Opciones para ejecutar un workflow en runtime con inferencia automática desde WorkflowGraph.
  */
 export interface ExecuteWorkflowOptions<
   TState,
@@ -53,18 +55,15 @@ export interface ExecuteWorkflowOptions<
   TNodesList extends string,
   TMutations,
 > {
-  graph: {
-    readonly id: string;
-    readonly nodes: Record<string, any>;
-  };
+  graph: WorkflowGraph<TState, TServices, TNodesList, TMutations>;
   initialState: TState;
   services: TServices;
-  onMutation?: (mutationKey: keyof TMutations, payload: any) => void;
-  reducer?: (
-    state: TState,
-    mutationKey: keyof TMutations,
+  mutations?: UnwrapMutations<TState, TMutations> | Record<string, (state: any, payload?: any) => any>;
+  onMutation?: (
+    key: keyof TMutations & string,
     payload: any,
-  ) => TState;
+    newState: DeepReadonly<TState>,
+  ) => void;
   startNodeId?: TNodesList;
   handlers?: NodeHandlersMap<TState, TServices, TNodesList, TMutations>;
   delayFn?: (ms: number) => Promise<void>;
@@ -72,7 +71,7 @@ export interface ExecuteWorkflowOptions<
 }
 
 /**
- * Orquestador principal en runtime con soporte para Ejecución Durable (Suspensión y Reanudación).
+ * Orquestador principal en runtime con inferencia automática de TState, TServices y TMutations desde el grafo.
  */
 export async function executeWorkflow<
   TState,
@@ -83,8 +82,8 @@ export async function executeWorkflow<
   graph,
   initialState,
   services,
+  mutations,
   onMutation,
-  reducer,
   startNodeId,
   handlers,
   delayFn,
@@ -136,10 +135,16 @@ export async function executeWorkflow<
       TNodesList,
       TMutations
     >((key, payload) => {
-      onMutation?.(key, payload);
-      if (typeof reducer === "function") {
-        currentState = reducer(currentState, key, payload);
+      if (mutations && typeof (mutations as any)[key] === "function") {
+        const patch = (mutations as any)[key](currentState, payload);
+        currentState = { ...currentState, ...patch };
       }
+
+      onMutation?.(
+        key as keyof TMutations & string,
+        payload,
+        currentState as DeepReadonly<TState>,
+      );
     });
 
     const contextFull = {
@@ -207,7 +212,7 @@ export async function executeWorkflow<
 }
 
 /**
- * Helper para reanudar un workflow suspendido desde su punto de congelamiento.
+ * Helper para reanudar un workflow suspendido deshidratado desde su punto de congelamiento.
  */
 export async function resumeWorkflow<
   TState,
