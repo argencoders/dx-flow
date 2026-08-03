@@ -2,7 +2,7 @@ import { DeepReadonly } from "../core/deep-readonly.js";
 import { WorkflowContext } from "./context.js";
 
 /**
- * Registro extensible de tipos de nodos del framework (4 parámetros estrictos).
+ * Registro extensible de tipos de nodos del framework (4 parámetros strictly typed).
  */
 export interface NodeDefinitions<
   TState,
@@ -45,10 +45,9 @@ export interface NodeDefinitions<
 
 /**
  * Validador homórfico que inspecciona cada propiedad contra las firmas de NodeDefinitions.
- * Para los nodos 'action':
- * - Si no se especifica 'onError', 'action' debe devolver void. Al resolver, navega a 'onSuccess'.
- * - Si se especifica 'onError', 'action' puede devolver void (éxito -> onSuccess) o una clave de error
- *   que debe estar obligatoriamente declarada en 'onError'.
+ * 💡 EXHAUSTIVIDAD DE onError:
+ * Si 'action' devuelve un string (ej: "FONDOS_INSUFICIENTES"), exige obligatoriamente que 'onError'
+ * esté presente y contenga dicha llave.
  */
 export type ValidateGraphNodes<
   TNodes,
@@ -58,57 +57,70 @@ export type ValidateGraphNodes<
   TMutations,
 > = {
   [K in keyof TNodes]: TNodes[K] extends { type: infer TType }
-    ? TType extends "action"
-      ? TNodes[K] extends {
-          action: (...args: any[]) => Promise<infer TRes> | infer TRes;
-        }
-        ? TNodes[K] extends { onError: infer TErrorMap }
-          ? TErrorMap extends Record<string, TNodesList>
-            ? [TRes] extends [keyof TErrorMap | void]
-              ? TNodes[K] extends { onSuccess: TNodesList }
-                ? TNodes[K]
-                : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
-              : {
-                  type: "action";
-                  action: (
-                    state: DeepReadonly<TState>,
-                    context: WorkflowContext<TState, TNodesList, TMutations> & {
-                      registry: TRegistry;
-                    },
-                  ) => Promise<keyof TErrorMap | void> | keyof TErrorMap | void;
-                  onSuccess: TNodesList;
-                  onError: TErrorMap;
-                }
-            : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
-          : [TRes] extends [void]
-            ? TNodes[K] extends { onSuccess: TNodesList }
+    ? TType extends keyof NodeDefinitions<
+        TState,
+        TRegistry,
+        TNodesList,
+        TMutations
+      >
+      ? TType extends "action"
+        ? TNodes[K] extends {
+            action: (...args: any[]) => Promise<infer TRes> | infer TRes;
+          }
+          ? [TRes] extends [void]
+            ? TNodes[K] extends NodeDefinitions<
+                TState,
+                TRegistry,
+                TNodesList,
+                TMutations
+              >["action"]
               ? TNodes[K]
-              : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
-            : {
-                type: "action";
-                action: (
-                  state: DeepReadonly<TState>,
-                  context: WorkflowContext<TState, TNodesList, TMutations> & {
-                    registry: TRegistry;
-                  },
-                ) => Promise<void> | void;
-                onSuccess: TNodesList;
-              }
-        : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
-      : TType extends keyof NodeDefinitions<
-            TState,
-            TRegistry,
-            TNodesList,
-            TMutations
-          >
-        ? TNodes[K] extends NodeDefinitions<
-            TState,
-            TRegistry,
-            TNodesList,
-            TMutations
-          >[TType]
-          ? TNodes[K]
-          : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>[TType]
-        : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
+              : NodeDefinitions<
+                  TState,
+                  TRegistry,
+                  TNodesList,
+                  TMutations
+                >["action"]
+            : TNodes[K] extends { onError: infer E }
+              ? E extends Record<string, TNodesList>
+                ? [TRes] extends [keyof E | void]
+                  ? TNodes[K] & {
+                      type: "action";
+                      onSuccess: TNodesList;
+                      onError: { [P in keyof E]: TNodesList };
+                    }
+                  : `❌ ERROR: El nodo '${K & string}' retorna '${Exclude<TRes, void> & string}' que no está declarado en 'onError'.`
+                : NodeDefinitions<
+                    TState,
+                    TRegistry,
+                    TNodesList,
+                    TMutations
+                  >["action"]
+              : `❌ ERROR: El nodo '${K & string}' retorna '${Exclude<TRes, void> & string}' pero no especificó 'onError'.`
+          : NodeDefinitions<
+              TState,
+              TRegistry,
+              TNodesList,
+              TMutations
+            >["action"]
+        : TNodes[K] extends { onError: infer E }
+          ? TNodes[K] & {
+              type: "action";
+              onSuccess: TNodesList;
+              onError: { [P in keyof E]: TNodesList };
+            } & NodeDefinitions<
+                TState,
+                TRegistry,
+                TNodesList,
+                TMutations
+              >["action"]
+          : TNodes[K] &
+              NodeDefinitions<
+                TState,
+                TRegistry,
+                TNodesList,
+                TMutations
+              >[TType]
+      : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
     : TNodes[K];
 };

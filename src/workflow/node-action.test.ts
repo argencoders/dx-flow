@@ -123,9 +123,9 @@ test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compila
     wf.create({
       id: "err1",
       nodes: {
+        // @ts-expect-error - Falta onError cuando action retorna string de error
         start: {
           type: "action",
-          // @ts-expect-error - Falta onError cuando action retorna string de error
           action: () => "FONDOS_INSUFICIENTES",
           onSuccess: "siguiente_nodo",
         },
@@ -137,13 +137,13 @@ test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compila
     wf.create({
       id: "err2",
       nodes: {
+        // @ts-expect-error - onError no mapea la llave 'TARJETA_EXPIRADA'
         start: {
           type: "action",
           action: (): "TARJETA_EXPIRADA" | void => "TARJETA_EXPIRADA",
           onSuccess: "siguiente_nodo",
-          // @ts-expect-error - onError no mapea la llave 'TARJETA_EXPIRADA'
           onError: {
-            FONDOS_INSUFICIENTES: "nodo_reintento",
+            FONDOS_INSUFICIENTES: "nodo_reintento" as const,
           },
         },
         siguiente_nodo: { type: "end", status: "OK" },

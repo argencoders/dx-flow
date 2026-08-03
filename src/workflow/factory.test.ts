@@ -5,6 +5,7 @@ import { defineWorkflow } from "./factory.js";
 interface EstadoSimulado {
   intentos: number;
   nombre: string;
+  esVip: boolean;
 }
 const registroMock = {
   "pasarela.cobrar": async (ctx: any) => ({ success: true, data: {} }),
@@ -21,8 +22,8 @@ const workflow = defineWorkflow<
   MutacionesSimuladas
 >();
 
-test("Workflow - Factory: Escenarios de Éxito de Inferencia Completa", () => {
-  function testFlujoPerfecto() {
+test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo", () => {
+  function testFlujoCompletoPerfecto() {
     const miGrafo = workflow.create({
       id: "cobro_recurrente_v2",
       nodes: {
@@ -32,14 +33,37 @@ test("Workflow - Factory: Escenarios de Éxito de Inferencia Completa", () => {
             ctx.mutate("INCREMENTAR_INTENTOS");
             ctx.mutate("CAMBIAR_NOMBRE", "Juan");
           },
+          onSuccess: "evaluar_reintento",
+        },
+        intentar_cobro: {
+          type: "action",
+          action: async (state, ctx) => {
+            if (state.intentos > 3) {
+              return "FONDOS_INSUFICIENTES";
+            }
+          },
           onSuccess: "pausa",
+          onError: {
+            FONDOS_INSUFICIENTES: "evaluar_reintento" as const,
+          },
+        },
+        evaluar_reintento: {
+          type: "choose",
+          choices: [
+            {
+              condition: (state) => state.esVip,
+              nextNode: "intentar_cobro",
+            },
+          ],
+          otherwise: "fin_fallo",
         },
         pausa: {
           type: "delay",
           durationMs: 1000,
-          onTimeout: "fin",
+          onTimeout: "fin_exito",
         },
-        fin: { type: "end", status: "SUCCESS" },
+        fin_exito: { type: "end", status: "SUCCESS" },
+        fin_fallo: { type: "end", status: "FAILED" },
       },
     });
 
@@ -55,7 +79,7 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
         start: {
           type: "delay",
           durationMs: 500,
-          // @ts-expect-error - ❌ El error saltará aquí de forma precisa por apuntar a un nodo fantasma
+          // @ts-expect-error - ❌ El error saltará aquí por apuntar a un nodo fantasma
           onTimeout: "NODO_FANTASMA_QUE_NO_EXISTE",
         },
       },
@@ -67,7 +91,7 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
       id: "nodo_invalido",
       nodes: {
         start: {
-          // @ts-expect-error - ❌ El error saltará aquí de forma precisa por tipo de nodo inexistente
+          // @ts-expect-error - ❌ El error saltará aquí por tipo de nodo inexistente
           type: "TIPO_DE_NODO_COMPLETAMENTE_FALSO",
         },
       },
@@ -81,7 +105,7 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
         start: {
           type: "action",
           action: (state, ctx) => {
-            // @ts-expect-error - ❌ El error saltará aquí de forma precisa por payload de tipo erróneo
+            // @ts-expect-error - ❌ El error saltará aquí por payload de tipo erróneo
             ctx.mutate("CAMBIAR_NOMBRE", 12345);
           },
           onSuccess: "start",
@@ -97,7 +121,7 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
         start: {
           type: "action",
           action: (state, ctx) => {
-            // @ts-expect-error - ❌ El error saltará aquí de forma precisa por llave de mutación inexistente
+            // @ts-expect-error - ❌ El error saltará aquí por llave de mutación inexistente
             ctx.mutate("MUTACION_QUE_NO_EXISTE");
           },
           onSuccess: "start",
@@ -110,10 +134,10 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
     workflow.create({
       id: "error_sin_mapear",
       nodes: {
+        // @ts-expect-error - ❌ Retorna "ERROR_PASARELA" que no pertenece a las llaves de onError
         start: {
           type: "action",
-          // @ts-expect-error - ❌ Falta declarar 'ERROR_PASARELA' en onError
-          action: (state, ctx): "ERROR_PASARELA" | void => {
+          action: (state, ctx) => {
             return "ERROR_PASARELA";
           },
           onSuccess: "start",
