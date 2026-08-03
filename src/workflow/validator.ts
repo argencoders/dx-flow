@@ -26,6 +26,7 @@ export interface NodeDefinitions<
       condition: (state: DeepReadonly<TState>) => boolean;
       nextNode: TNodesList;
     }>;
+    otherwise: TNodesList;
   };
 
   delay: {
