@@ -45,11 +45,11 @@ export interface NodeDefinitions<
 
 /**
  * Validador homórfico que inspecciona cada propiedad contra las firmas de NodeDefinitions.
- * 💡 PASO 2: CONTEXTUALIZACIÓN Y VALIDACIÓN ESTRICTA DE onError
- * 1. Mapea { [P in keyof E]: TNodesList } para contextualizar nativamente los valores de onError
- *    como TNodesList (sugerencias automáticas en el IDE y CERO necesidad de 'as const').
- * 2. Valida estrictamente que los valores en onError pertenezcan a TNodesList, rechazando
- *    destinos inexistentes incluso si se intenta usar 'as const'.
+ * 💡 PASO 3: INFERENCIA Y VALIDACIÓN ESTRICTA DEL RETURN TYPE DE action
+ * 1. Si NO especifica 'onError', la función 'action' debe retornar estrictamente 'void | Promise<void>'.
+ * 2. Si especifica 'onError', la función 'action' se contextualiza con 'Promise<keyof onError | void> | keyof onError | void',
+ *    ofreciendo autocompletado del error retornado e infiriendo 'void' para ejecuciones exitosas.
+ * 3. Si 'action' retorna una clave de error no declarada en 'onError', se emite un error descriptivo.
  */
 export type ValidateGraphNodes<
   TNodes,
@@ -71,22 +71,43 @@ export type ValidateGraphNodes<
           }
           ? TNodes[K] extends { onError: infer E }
             ? E extends Record<string, any>
-              ? [TRes] extends [keyof E | void]
-                ? Omit<TNodes[K], "onError"> & {
+              ? [TRes] extends [keyof E | void | undefined]
+                ? Omit<TNodes[K], "onError" | "action"> & {
                     type: "action";
+                    action: (
+                      state: DeepReadonly<TState>,
+                      context: WorkflowContext<TState, TNodesList, TMutations> & {
+                        registry: TRegistry;
+                      },
+                    ) => Promise<keyof E | void> | keyof E | void;
                     onSuccess: TNodesList;
                     onError: { [P in keyof E]: TNodesList };
                   }
-                : `❌ ERROR: El nodo '${K & string}' retorna el error '${Exclude<TRes, void> & string}' que no está declarado en 'onError'.`
+                : `❌ ERROR: El nodo '${K & string}' retorna el error '${Exclude<TRes, void | undefined> & string}' que no está declarado en 'onError'.`
               : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
-            : [TRes] extends [void]
-              ? TNodes[K] & NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
-              : `❌ ERROR: El nodo '${K & string}' retorna el error '${Exclude<TRes, void> & string}' pero no especificó 'onError'.`
+            : [TRes] extends [void | undefined]
+              ? TNodes[K] & {
+                  type: "action";
+                  action: (
+                    state: DeepReadonly<TState>,
+                    context: WorkflowContext<TState, TNodesList, TMutations> & {
+                      registry: TRegistry;
+                    },
+                  ) => Promise<void> | void;
+                  onSuccess: TNodesList;
+                }
+              : `❌ ERROR: El nodo '${K & string}' retorna el error '${Exclude<TRes, void | undefined> & string}' pero no especificó 'onError'.`
           : NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
         : TNodes[K] extends { onError: infer E }
           ? E extends Record<string, any>
-            ? Omit<TNodes[K], "onError"> & {
+            ? Omit<TNodes[K], "onError" | "action"> & {
                 type: "action";
+                action: (
+                  state: DeepReadonly<TState>,
+                  context: WorkflowContext<TState, TNodesList, TMutations> & {
+                    registry: TRegistry;
+                  },
+                ) => Promise<keyof E | void> | keyof E | void;
                 onSuccess: TNodesList;
                 onError: { [P in keyof E]: TNodesList };
               } & NodeDefinitions<TState, TRegistry, TNodesList, TMutations>["action"]
