@@ -4,12 +4,9 @@ import { NodeHandler, NodeHandlerResult } from "./node-handler.js";
  * Estrategia de ejecución atómica para nodos de tipo 'action'.
  * - Si la función 'action' resuelve sin retornar nada (void / undefined), la ejecución ha sido exitosa
  *   y navega estáticamente hacia 'onSuccess'.
+ * - Si la función 'action' invoca 'ctx.suspend(eventName)', congela la ejecución del workflow.
  * - Si la función 'action' retorna una clave de error (string), se busca determinísticamente
  *   su mapeo en el diccionario declarativo 'onError'.
- *
- * 💡 USO DE 'any': 'nodeActionHandler' utiliza parámetros genéricos 'any' (NodeHandler<any, any, any, any>)
- * para actuar como handler agnóstico predeterminado registrado en el engine, pudiendo procesar grafos
- * con cualquier tipo de Estado, Registry, Lista de Nodos y Mutaciones sin acoplarse a un workflow específico.
  */
 export const nodeActionHandler: NodeHandler<any, any, any, any> = async ({
   node,
@@ -38,7 +35,18 @@ export const nodeActionHandler: NodeHandler<any, any, any, any> = async ({
     };
   }
 
-  // 2. Error Mapeado: La función retornó una clave de error (string) -> Buscar en onError
+  // 2. Suspensión Dinámica: La función retornó un resultado de ctx.suspend(...)
+  if (
+    typeof result === "object" &&
+    result?.__type_navigation__ === "SUSPEND_NODE"
+  ) {
+    return {
+      type: "SUSPEND",
+      eventName: result.eventName,
+    };
+  }
+
+  // 3. Error Mapeado: La función retornó una clave de error (string) -> Buscar en onError
   if (typeof result === "string") {
     const errorTarget = node?.onError?.[result];
     if (typeof errorTarget !== "string") {
@@ -53,6 +61,6 @@ export const nodeActionHandler: NodeHandler<any, any, any, any> = async ({
   }
 
   throw new Error(
-    `❌ ERROR: La función del nodo 'action' debe devolver void en caso de éxito o un string de error manejado en 'onError'.`,
+    `❌ ERROR: La función del nodo 'action' debe devolver void en caso de éxito, ctx.suspend() para pausar, o un string de error manejado en 'onError'.`,
   );
 };

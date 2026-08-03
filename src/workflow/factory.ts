@@ -8,6 +8,7 @@ export interface WorkflowGraph<
   TServices = any,
   TNodesList extends string = string,
   TMutations = any,
+  TEvents = Record<string, any>,
 > {
   readonly id: string;
   readonly nodes: Record<TNodesList, any>;
@@ -15,13 +16,19 @@ export interface WorkflowGraph<
     readonly state: TState;
     readonly services: TServices;
     readonly mutations: TMutations;
+    readonly events: TEvents;
   };
 }
 
 /**
- * Factoría de workflows con inyección de estado, acciones IoC y mutaciones seguras.
+ * Factoría de workflows con inyección de estado, acciones IoC, mutaciones y eventos externos seguras.
  */
-export const defineWorkflow = <TState, TServices, TMutations>() => {
+export const defineWorkflow = <
+  TState,
+  TServices,
+  TMutations,
+  TEvents = Record<string, any>,
+>() => {
   return {
     /**
      * Construye y blinda la consistencia lógica de un Grafo de Workflow.
@@ -29,7 +36,7 @@ export const defineWorkflow = <TState, TServices, TMutations>() => {
     create: <
       TNodes extends {
         [K in keyof TNodes]: {
-          type: keyof NodeDefinitions<TState, TServices, any, TMutations>;
+          type: keyof NodeDefinitions<TState, TServices, any, TMutations, TEvents>;
         };
       },
     >(graph: {
@@ -40,9 +47,16 @@ export const defineWorkflow = <TState, TServices, TMutations>() => {
           TState,
           TServices,
           keyof TNodes & string,
-          TMutations
+          TMutations,
+          TEvents
         >;
-    }): WorkflowGraph<TState, TServices, keyof TNodes & string, TMutations> => {
+    }): WorkflowGraph<
+      TState,
+      TServices,
+      keyof TNodes & string,
+      TMutations,
+      TEvents
+    > => {
       return graph as any;
     },
   };

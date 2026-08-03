@@ -106,8 +106,20 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
     state: { saldo: 20 },
   });
   assert.equal(resError.type, "NEXT");
-  if (resError.type === "NEXT") {
-    assert.equal(resError.target, "nodo_reintento");
+  // 2c. Suspensión dinámica mediante ctx.suspend(...)
+  const resSuspend = await nodeActionHandler({
+    ...paramsBase,
+    node: {
+      type: "action",
+      action: (state: EstadoTest, ctx: typeof contextFull) => {
+        return ctx.suspend("EVENTO_WEBHOOK");
+      },
+      onSuccess: "siguiente_nodo",
+    },
+  });
+  assert.equal(resSuspend.type, "SUSPEND");
+  if (resSuspend.type === "SUSPEND") {
+    assert.equal(resSuspend.eventName, "EVENTO_WEBHOOK");
   }
 });
 

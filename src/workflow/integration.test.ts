@@ -51,6 +51,17 @@ interface MutacionesPedido {
 }
 
 /**
+ * Eventos Externos / Señales esperadas por el Workflow
+ */
+interface EventosPedido {
+  WEBHOOK_PAGO_RECIBIDO: {
+    txId: string;
+    exitoso: boolean;
+    razonFallo?: string;
+  };
+}
+
+/**
  * 2. Registro de Mutaciones Typed del Negocio
  */
 const mutacionesPedido = defineMutations<EstadoPedido>().create({
@@ -82,16 +93,20 @@ const mutacionesPedido = defineMutations<EstadoPedido>().create({
 });
 
 /**
- * 3. Definición del Workflow Builder
+ * 3. Definición del Workflow Builder con Tipado Estricto de TEvents
  */
-const wf = defineWorkflow<EstadoPedido, ServiciosPedido, MutacionesPedido>();
+const wf = defineWorkflow<
+  EstadoPedido,
+  ServiciosPedido,
+  MutacionesPedido,
+  EventosPedido
+>();
 
 type NodosPedidoList =
   | "start"
   | "evaluar_descuento_vip"
   | "aplicar_descuento"
-  | "esperar_webhook_pago"
-  | "procesar_confirmacion_pago"
+  | "procesar_pago"
   | "delay_preparacion_logistica"
   | "despachar_pedido"
   | "fin_exito"
@@ -99,13 +114,14 @@ type NodosPedidoList =
   | "fin_pago_fallido";
 
 /**
- * 4. Factoría del Grafo del Workflow Multinodo (Utilizando Nodos Nativos del Motor)
+ * 4. Factoría del Grafo del Workflow Multinodo (Plan B: Suspensión Dinámica con ctx.suspend)
  */
 function crearGrafoPedido(): WorkflowGraph<
   EstadoPedido,
   ServiciosPedido,
   NodosPedidoList,
-  MutacionesPedido
+  MutacionesPedido,
+  EventosPedido
 > {
   return wf.create({
     id: "fulfillment_pedidos_v1",
@@ -133,29 +149,28 @@ function crearGrafoPedido(): WorkflowGraph<
             nextNode: "aplicar_descuento",
           },
         ],
-        otherwise: "esperar_webhook_pago",
+        otherwise: "procesar_pago",
       },
       aplicar_descuento: {
         type: "action",
         action: (state, ctx) => {
           ctx.mutate("APLICAR_DESCUENTO", { porcentaje: 10 });
         },
-        onSuccess: "esperar_webhook_pago",
+        onSuccess: "procesar_pago",
       },
-      esperar_webhook_pago: {
-        type: "suspend",
-        eventName: "REGISTRAR_PAGO",
-        onResume: "procesar_confirmacion_pago",
-      },
-      procesar_confirmacion_pago: {
+      procesar_pago: {
         type: "action",
         action: (state, ctx) => {
-          const payload = ctx.signalPayload as
-            | { txId: string; exitoso: boolean; razonFallo?: string }
-            | undefined;
+          // ⏸️ Si aún no llega la señal externa, nos suspendemos dinámicamente
+          if (!ctx.signalPayload) {
+            return ctx.suspend("WEBHOOK_PAGO_RECIBIDO");
+          }
 
-          if (!payload || !payload.exitoso) {
-            const razon = payload?.razonFallo ?? "PAGO_RECHAZADO_POR_BANCO";
+          // ⚡ Al reanudar, ctx.signalPayload está 100% tipado por TEvents (Cero casteos!)
+          const { txId, exitoso, razonFallo } = ctx.signalPayload;
+
+          if (!exitoso) {
+            const razon = razonFallo ?? "PAGO_RECHAZADO_POR_BANCO";
             ctx.mutate("MARCAR_CANCELADO", { razon, esRechazo: true });
             ctx.services.notificarCliente(
               `El pago del pedido ${state.idPedido} fue rechazado. Razon: ${razon}`,
@@ -163,12 +178,8 @@ function crearGrafoPedido(): WorkflowGraph<
             return "ERROR_PAGO_RECHAZADO";
           }
 
-          ctx.mutate("REGISTRAR_PAGO", { txId: payload.txId });
-          ctx.services.registrarTransaccion(
-            state.idPedido,
-            payload.txId,
-            state.monto,
-          );
+          ctx.mutate("REGISTRAR_PAGO", { txId });
+          ctx.services.registrarTransaccion(state.idPedido, txId, state.monto);
         },
         onSuccess: "delay_preparacion_logistica",
         onError: {
@@ -210,7 +221,7 @@ function crearGrafoPedido(): WorkflowGraph<
 /**
  * 5. Suite de Pruebas de Integración End-to-End
  */
-test("Integration E2E: Flujo Feliz Completo Cliente VIP (Multinodo, Nodo Nativo Suspend, Delay y Reanudación)", async () => {
+test("Integration E2E: Flujo Feliz Completo Cliente VIP (Plan B: Suspensión Dinámica ctx.suspend, Delay y Reanudación)", async () => {
   const graph = crearGrafoPedido();
 
   const transaccionesRegistradas: Array<{ id: string; txId: string; monto: number }> = [];
@@ -240,7 +251,7 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Multinodo, Nodo Nativo 
     estadoPedido: "NUEVO",
   };
 
-  // FASE 1: Ejecución Inicial hasta Suspensión por Nodo Nativo 'suspend'
+  // FASE 1: Ejecución Inicial hasta Suspensión Dinámica en procesar_pago
   const resInicial = await executeWorkflow({
     graph,
     initialState: estadoInicial,
@@ -256,9 +267,8 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Multinodo, Nodo Nativo 
 
   assert.equal(resInicial.status, "SUSPENDED");
   if (resInicial.status === "SUSPENDED") {
-    assert.equal(resInicial.suspendedAtNodeId, "esperar_webhook_pago");
-    assert.equal(resInicial.targetOnResume, "procesar_confirmacion_pago");
-    assert.equal(resInicial.eventName, "REGISTRAR_PAGO");
+    assert.equal(resInicial.suspendedAtNodeId, "procesar_pago");
+    assert.equal(resInicial.eventName, "WEBHOOK_PAGO_RECIBIDO");
     // Descuento del 10% de 500 = 50 -> Monto final 450
     assert.equal(resInicial.finalState.monto, 450);
     assert.equal(resInicial.finalState.descuentoAplicado, 50);
@@ -267,7 +277,7 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Multinodo, Nodo Nativo 
     assert.equal(resInicial.history[0].nodeId, "start");
     assert.equal(resInicial.history[1].nodeId, "evaluar_descuento_vip");
     assert.equal(resInicial.history[2].nodeId, "aplicar_descuento");
-    assert.equal(resInicial.history[3].nodeId, "esperar_webhook_pago");
+    assert.equal(resInicial.history[3].nodeId, "procesar_pago");
   }
 
   assert.deepEqual(mutacionesAplicadas, [
@@ -300,7 +310,7 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Multinodo, Nodo Nativo 
       assert.equal(resFinal.finalState.transaccionPagoId, "TX-PASARELA-777");
       assert.equal(resFinal.finalState.monto, 450);
       assert.equal(resFinal.history.length, 4); // Pasos ejecutados tras la reanudación
-      assert.equal(resFinal.history[0].nodeId, "procesar_confirmacion_pago");
+      assert.equal(resFinal.history[0].nodeId, "procesar_pago");
       assert.equal(resFinal.history[1].nodeId, "delay_preparacion_logistica");
       assert.equal(resFinal.history[2].nodeId, "despachar_pedido");
       assert.equal(resFinal.history[3].nodeId, "fin_exito");
@@ -348,7 +358,7 @@ test("Integration E2E: Flujo Feliz Cliente Estándar (Sin Descuento VIP)", async
     estadoPedido: "NUEVO",
   };
 
-  // 1. Ejecución Inicial -> Pasa por 'choose' y salta 'aplicar_descuento' directo a 'esperar_webhook_pago'
+  // 1. Ejecución Inicial -> Pasa por 'choose' y salta 'aplicar_descuento' directo a 'procesar_pago'
   const resInicial = await executeWorkflow({
     graph,
     initialState: estadoInicial,
@@ -358,13 +368,13 @@ test("Integration E2E: Flujo Feliz Cliente Estándar (Sin Descuento VIP)", async
 
   assert.equal(resInicial.status, "SUSPENDED");
   if (resInicial.status === "SUSPENDED") {
-    assert.equal(resInicial.suspendedAtNodeId, "esperar_webhook_pago");
+    assert.equal(resInicial.suspendedAtNodeId, "procesar_pago");
     assert.equal(resInicial.finalState.monto, 200); // Sin descuento
     assert.equal(resInicial.finalState.descuentoAplicado, 0);
     assert.equal(resInicial.history.length, 3);
     assert.equal(resInicial.history[0].nodeId, "start");
     assert.equal(resInicial.history[1].nodeId, "evaluar_descuento_vip");
-    assert.equal(resInicial.history[2].nodeId, "esperar_webhook_pago");
+    assert.equal(resInicial.history[2].nodeId, "procesar_pago");
   }
 
   // 2. Reanudación exitosa
@@ -436,7 +446,7 @@ test("Integration E2E: Flujo de Fallo en Reanudación (Webhook con Pago Rechazad
     despacharLogistica: () => {},
   };
 
-  // 1. Ejecución Inicial hasta Suspensión
+  // 1. Ejecución Inicial hasta Suspensión en procesar_pago
   const resInicial = await executeWorkflow({
     graph,
     initialState: {
@@ -474,7 +484,7 @@ test("Integration E2E: Flujo de Fallo en Reanudación (Webhook con Pago Rechazad
         "FONDOS_INSUFICIENTES",
       );
       assert.equal(resFinal.history.length, 2);
-      assert.equal(resFinal.history[0].nodeId, "procesar_confirmacion_pago");
+      assert.equal(resFinal.history[0].nodeId, "procesar_pago");
       assert.equal(resFinal.history[1].nodeId, "fin_pago_fallido");
     }
 
