@@ -1,0 +1,17 @@
+# Directivas del Proyecto Workflow Engine
+
+## 1. Regla Estricta de Terminal & Testing
+- NUNCA ejecutes comandos de terminal para build o test (`npm test`, `npm run build`, `tsx`). El usuario se encarga de ejecutarlos manualmente en su propia consola.
+
+## 2. DX y Tipado Homomórfico (Inferencia Incondicional)
+- Priorizar la Developer Experience (DX). Los tipos deben inferirse de forma transparente en el IDE desde el objeto principal (`WorkflowGraph`) sin obligar al desarrollador a escribir tipos genéricos repetidos ni reducers manuales.
+- Queda PROHIBIDO requerir callbacks `reducer` manuales en runtime. Las mutaciones deben integrarse directamente con el módulo `defineMutations<TState>().create(...)` de `src/mutations/mutations.ts`.
+
+## 3. Control Atómico y Explicación Previa
+- Trabajar en sub-etapas pequeñas y atómicas. Explicar el diagnóstico y los cambios antes de modificar cualquier archivo.
+
+## 4. Hook Observador de Mutaciones (`onMutation`)
+- `onMutation` es EXCLUSIVAMENTE un hook observador/auditoría. Recibe `(key, payload, newState)`. Su presencia es opcional y no debe alterar la evolución del estado.
+
+## 5. Arquitectura Extensible de Nodos (Cero Switch)
+- Prohibidos los bloques `switch` monolíticos en el motor. La adición de nuevos tipos de nodos debe realizarse mediante _Declaration Merging_ en `NodeDefinitions` (`validator.ts`) y registrando su handler atómico en `NodeHandlersMap`.

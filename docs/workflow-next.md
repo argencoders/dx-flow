@@ -44,6 +44,9 @@
 - [x] **Fase 4.5:** Manejador atómico para nodos `end` (`src/workflow/node-end.ts` y `src/workflow/node-end.test.ts`).
 - [x] **Fase 4.6:** Registro central de handlers de runtime sin `switch` (`src/workflow/node-handlers.ts` y `src/workflow/node-handlers.test.ts`).
 - [x] **Fase 4.7:** Motor principal de ejecución durable con soporte para **Suspensión, Reanudación y Deshidratación** (`executeWorkflow`, `resumeWorkflow`, `src/workflow/engine.ts` y `src/workflow/engine.test.ts`).
+  - Inferencia automática desde `WorkflowGraph` para `initialState`, `services` y `onMutation`.
+  - Integración nativa con `defineMutations` de Sprint 1 (`src/mutations/mutations.ts`) eliminando el `reducer` manual.
+  - Hook observador `onMutation(key, payload, newState)` para auditoría y EventLog.
 - [ ] **Fase 4.8:** Test de integración e2e multinodo simulando suspensión por webhook/evento externo (`src/workflow/integration.test.ts`).
 
 ### ⬜ Paso 5: Fisonomías Avanzadas y Azúcar Sintáctico (`src/workflow/features/`)
