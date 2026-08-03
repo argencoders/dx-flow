@@ -45,13 +45,13 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
   };
 
   // 1. Caso Acción Lineal Pura (void -> onSuccess, sin onError)
-  const nodePuro = {
-    type: "action" as const,
+  const nodePuro: NodeActionDef = {
+    type: "action",
     action: (state: EstadoTest, ctx: typeof contextFull) => {
       ctx.mutate("DEPOSITAR", 100);
       // Retorna void implícito -> va a onSuccess
     },
-    onSuccess: "siguiente_nodo" as const,
+    onSuccess: "siguiente_nodo",
   };
 
   const paramsBase: NodeHandlerParams<
@@ -74,17 +74,17 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
   assert.equal(payloadRegistrado, 100);
 
   // 2. Caso Acción con Manejo de Errores (onError)
-  const nodeConErrores = {
-    type: "action" as const,
+  const nodeConErrores: NodeActionDef = {
+    type: "action",
     action: async (state: EstadoTest, ctx: typeof contextFull) => {
       if (state.saldo < 100) {
         return "FONDOS_INSUFICIENTES";
       }
       ctx.mutate("DEPOSITAR", 50);
     },
-    onSuccess: "siguiente_nodo" as const,
+    onSuccess: "siguiente_nodo",
     onError: {
-      FONDOS_INSUFICIENTES: "nodo_reintento" as const,
+      FONDOS_INSUFICIENTES: "nodo_reintento",
     },
   };
 
