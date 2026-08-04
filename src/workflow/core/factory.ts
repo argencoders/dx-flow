@@ -20,6 +20,26 @@ export interface WorkflowGraph<
 }
 
 /**
+ * Infiere de manera determinista el ID del nodo inicial de un grafo de workflow.
+ * Prioridad: explicitStartNodeId -> clave "start" -> primera clave declarada sintácticamente.
+ */
+export function resolveStartNodeId<TNodesList extends string = string>(
+  nodes: Record<string, any>,
+  explicitStartNodeId?: TNodesList,
+): TNodesList | undefined {
+  if (!nodes || Object.keys(nodes).length === 0) {
+    return undefined;
+  }
+  if (explicitStartNodeId && nodes[explicitStartNodeId]) {
+    return explicitStartNodeId;
+  }
+  if (nodes["start"]) {
+    return "start" as TNodesList;
+  }
+  return Object.keys(nodes)[0] as TNodesList;
+}
+
+/**
  * Factoría de workflows con inyección de estado, acciones IoC y eventos externos seguros.
  */
 export const defineWorkflow = <

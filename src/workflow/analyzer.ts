@@ -1,4 +1,4 @@
-import { WorkflowGraph } from "./core/factory.js";
+import { WorkflowGraph, resolveStartNodeId } from "./core/factory.js";
 
 /**
  * Opciones para la auditoría de topología del grafo.
@@ -140,12 +140,12 @@ export function analyzeTopology<
   }
 
   // Resolución determinista del nodo inicial
-  const startNodeId: TNodesList = (
-    options?.startNodeId ??
-    (rawNodes["start"] ? ("start" as TNodesList) : allNodeIds[0])
+  const startNodeId: TNodesList | undefined = resolveStartNodeId(
+    rawNodes,
+    options?.startNodeId,
   );
 
-  if (!rawNodes[startNodeId]) {
+  if (!startNodeId || !rawNodes[startNodeId]) {
     errors.push(`❌ ERROR: El nodo de inicio especificado o inferido '${String(startNodeId)}' no existe en el grafo.`);
     return {
       isValid: false,

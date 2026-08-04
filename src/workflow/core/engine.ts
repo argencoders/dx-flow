@@ -1,6 +1,6 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { createRuntimeContext } from "./context.js";
-import { WorkflowGraph } from "./factory.js";
+import { WorkflowGraph, resolveStartNodeId } from "./factory.js";
 import {
   NodeHandler,
   NodeHandlersMap,
@@ -86,13 +86,10 @@ export async function executeWorkflow<
   signalPayload,
 }: ExecuteWorkflowOptions<TState, TServices, TNodesList>): Promise<WorkflowExecutionResult<TState, TNodesList>> {
   let currentState: TState = initialState;
-  const defaultInitialNodeId = (
-    (graph.nodes as Record<string, any>)["start"]
-      ? "start"
-      : Object.keys(graph.nodes)[0]
-  ) as TNodesList;
-  let currentNodeId: TNodesList | undefined =
-    startNodeId ?? defaultInitialNodeId;
+  let currentNodeId: TNodesList | undefined = resolveStartNodeId(
+    graph.nodes,
+    startNodeId,
+  );
 
   const history: Array<ExecutionStepRecord<TNodesList>> = [];
   const compensationStack: Array<(state: any, context: any) => Promise<void> | void> = [];
