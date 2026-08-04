@@ -87,3 +87,10 @@
 - [ ] **Exportador Mermaid.js (`src/workflow/exporters/mermaid.ts`):** Generar diagramas de flujo `graph TD` aplicando clases de estilo diferenciadas según la propiedad `result` en nodos `end`.
 - [ ] **Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):** Generar XML estándar compatible con Camunda Modeler mapeando `result` a los subtipos oficiales `<bpmn:errorEventDefinition>`, `<bpmn:compensateEventDefinition>`, etc.
 - [ ] **Suite de Pruebas de Exportación:** `src/workflow/exporters/mermaid.test.ts` y `bpmn.test.ts`.
+
+### ⬜ Paso 8: Persistencia Durable, Adaptadores de DB y EventStore (`src/workflow/persistence/`)
+
+- [ ] **Abstracción de Repositorio de Estado (`WorkflowStateRepository`):** Interfaz desacoplada para deshidratar (snapshot JSON de `finalState`, `suspendedAtNodeId`, `compensationStack` e `history`) y reanudar flujos congelados en bases de datos (Postgres, Redis, MongoDB, In-Memory).
+- [ ] **Log de Auditoría y EventStore (`WorkflowEventStore`):** Registro inalterable append-only de mutaciones (`onMutation`) e historial de ejecución para trazabilidad de cumplimiento, auditoría y time-travel debugging.
+- [ ] **Adaptadores del Mundo Real (Outbox Pattern & Event Listeners):** Despachador y receptor de eventos externos (webhooks, temporizadores distribuidos BullMQ/Redis, colas RabbitMQ/Kafka) integrados nativamente con `resumeWorkflow`.
+- [ ] **Suite de Pruebas de Persistencia:** `src/workflow/persistence/repository.test.ts`.
