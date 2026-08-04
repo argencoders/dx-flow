@@ -70,6 +70,10 @@
   En la versión actual de TypeScript, cuando un elemento de un arreglo/tupla (`steps: [...]`) no satisface la firma de retorno esperada en `action` (por ejemplo, al retornar un error no declarado en `onError`), la marca de error estático del compilador se coloca sobre la apertura del objeto del paso `{ type: "action", ... }` en lugar de ubicarse directamente sobre la clave de propiedad `action: (state, ctx) => ...`. Queda anotado en la wishlist investigar refinamientos de tipos o futuras versiones de TypeScript que permitan posicionar quirúrgicamente el error en la sub-propiedad `action`.
 - **Estrategia de Fusión y Manejo de Conflictos en Mutaciones Concurrentes (`parallel`):**
   Analizar patrones avanzados de consolidación de estado (ej. merge profundo de parches, detección estática/dinámica de colisiones de campos o mutadores por slice de estado) cuando ramas concurrentes ejecutan `ctx.mutate()` en paralelo.
+- **Inyección de Ejecutor por Contexto (IoC & Scope de Request HTTP / `hardwired`):**
+  > [!WARNING]
+  > **Advertencia de Arquitectura e Integración IoC:**
+  > En escenarios donde el motor o los servicios sean instanciados mediante contenedores de inyección de dependencias (IoC Request-Scoped tipo `hardwired`, Inversify o NestJS) para trasladar el contexto de un Request HTTP hacia `services`, la importación diferida de `executeWorkflow` dentro de `nodeSubworkflowHandler` deberá evolucionar hacia la Inyección del Ejecutor vía `context` (`context.executeChildWorkflow(...)`). Esto evitará el acoplamiento a nivel de módulo y garantizará que los sub-workflows compartan transparentemente los contenedores de servicios con scope de solicitud.
 
 ---
 
