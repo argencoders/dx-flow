@@ -271,6 +271,48 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       typeof miGrafoParallelInline
     >;
   }
+
+  function testFlujoConRetryPolicyValida() {
+    const miGrafoRetry = workflow.create({
+      id: "flujo_retry_valido",
+      nodes: {
+        start: {
+          type: "action",
+          action: (state, ctx) => {
+            ctx.mutate({ intentos: state.intentos + 1 });
+          },
+          retry: {
+            maxAttempts: 3,
+            initialIntervalMs: 1000,
+            backoffCoefficient: 2,
+            maxIntervalMs: 10000,
+            jitter: true,
+            retryableErrors: ["TIMEOUT"],
+          },
+          onSuccess: "paso_inline",
+        },
+        paso_inline: {
+          type: "sequence",
+          steps: [
+            {
+              type: "action",
+              action: (state, ctx) => {
+                ctx.mutate({ intentos: state.intentos + 1 });
+              },
+              retry: {
+                maxAttempts: 2,
+                initialIntervalMs: 500,
+              },
+            },
+          ],
+          onSuccess: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
+
+    type TestAsignabilidad = Expect<typeof miGrafoRetry, typeof miGrafoRetry>;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
@@ -418,6 +460,25 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
               return "ERROR_EN_SHORTHAND";
             },
           ],
+          onSuccess: "fin",
+        },
+        fin: { type: "end", status: "OK" },
+      },
+    });
+  }
+
+  function testFalloRetryPolicyInvalida() {
+    workflow.create({
+      id: "retry_invalido",
+      nodes: {
+        start: {
+          type: "action",
+          action: (state, ctx) => {},
+          retry: {
+            // @ts-expect-error - ❌ maxAttempts debe ser un number, no string
+            maxAttempts: "TRES",
+            initialIntervalMs: 1000,
+          },
           onSuccess: "fin",
         },
         fin: { type: "end", status: "OK" },

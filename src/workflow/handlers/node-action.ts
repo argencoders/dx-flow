@@ -1,4 +1,75 @@
 import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
+import { RetryPolicy } from "../core/validator.js";
+
+/**
+ * Ejecuta una función de acción respetando la política de reintentos RetryPolicy con backoff exponencial.
+ */
+export async function executeActionWithRetry(
+  actionFn: () => Promise<any> | any,
+  retryPolicy?: RetryPolicy,
+  delayFn?: (ms: number) => Promise<void>,
+): Promise<any> {
+  if (!retryPolicy) {
+    return await actionFn();
+  }
+
+  const maxAttempts = retryPolicy.maxAttempts;
+  const initialIntervalMs = retryPolicy.initialIntervalMs;
+  const backoffCoef = retryPolicy.backoffCoefficient ?? 2;
+  const maxIntervalMs = retryPolicy.maxIntervalMs;
+  const jitter = retryPolicy.jitter ?? false;
+  const retryableErrors = retryPolicy.retryableErrors;
+
+  const sleep = delayFn ?? ((ms: number) => new Promise((res) => setTimeout(res, ms)));
+
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      const result = await actionFn();
+
+      if (
+        typeof result === "string" &&
+        Array.isArray(retryableErrors) &&
+        retryableErrors.includes(result) &&
+        attempt < maxAttempts
+      ) {
+        let delay = initialIntervalMs * Math.pow(backoffCoef, attempt - 1);
+        if (maxIntervalMs !== undefined) {
+          delay = Math.min(delay, maxIntervalMs);
+        }
+        if (jitter) {
+          delay = Math.round(delay * (0.8 + Math.random() * 0.4));
+        }
+        await sleep(delay);
+        continue;
+      }
+
+      return result;
+    } catch (err: any) {
+      if (attempt >= maxAttempts) {
+        throw err;
+      }
+
+      if (Array.isArray(retryableErrors) && retryableErrors.length > 0) {
+        const errMsg = err?.message ?? String(err);
+        const matches = retryableErrors.some((e) => errMsg.includes(e) || err?.name === e);
+        if (!matches) {
+          throw err;
+        }
+      }
+
+      let delay = initialIntervalMs * Math.pow(backoffCoef, attempt - 1);
+      if (maxIntervalMs !== undefined) {
+        delay = Math.min(delay, maxIntervalMs);
+      }
+      if (jitter) {
+        delay = Math.round(delay * (0.8 + Math.random() * 0.4));
+      }
+      await sleep(delay);
+    }
+  }
+}
 
 /**
  * Estrategia de ejecución atómica para nodos de tipo 'action'.
@@ -7,11 +78,13 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Si la función 'action' invoca 'ctx.suspend(eventName)', congela la ejecución del workflow.
  * - Si la función 'action' retorna una clave de error (string), se busca determinísticamente
  *   su mapeo en el diccionario declarativo 'onError'.
+ * - Si el nodo cuenta con 'retry' (RetryPolicy), se aplican reintentos automáticos con backoff exponencial.
  */
 export const nodeActionHandler: NodeHandler<any, any, any> = async ({
   node,
   state,
   context,
+  delayFn,
 }): Promise<NodeHandlerResult<any>> => {
   if (typeof node?.action !== "function") {
     throw new Error(
@@ -25,7 +98,11 @@ export const nodeActionHandler: NodeHandler<any, any, any> = async ({
     );
   }
 
-  const result = await node.action(state, context);
+  const result = await executeActionWithRetry(
+    () => node.action(state, context),
+    node.retry,
+    delayFn,
+  );
 
   // 1. Éxito: La función retornó void / undefined -> Navegar a onSuccess
   if (result === undefined || result === null) {

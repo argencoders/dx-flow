@@ -1,6 +1,15 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
 
+export interface RetryPolicy {
+  maxAttempts: number;
+  initialIntervalMs: number;
+  backoffCoefficient?: number;
+  maxIntervalMs?: number;
+  jitter?: boolean;
+  retryableErrors?: string[];
+}
+
 export interface InlineActionStep<
   TState,
   TServices,
@@ -15,6 +24,7 @@ export interface InlineActionStep<
     },
   ) => Promise<string | SuspendResult | void> | string | SuspendResult | void;
   onError?: Record<string, TNodesList>;
+  retry?: RetryPolicy;
 }
 
 export interface InlineDelayStep {
@@ -149,6 +159,7 @@ export interface NodeDefinitions<
     ) => Promise<string | SuspendResult | void> | string | SuspendResult | void;
     onSuccess: TNodesList;
     onError?: Record<string, TNodesList>;
+    retry?: RetryPolicy;
   };
 
   choose: {

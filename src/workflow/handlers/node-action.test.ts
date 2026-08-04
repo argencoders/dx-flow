@@ -197,3 +197,71 @@ test("Workflow - NodeAction: Escenarios de Fallo de Runtime", async () => {
     },
   );
 });
+
+test("Workflow - NodeAction: Política de Reintentos (RetryPolicy) y Backoff Exponencial", async () => {
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
+  const contextFull = { ...baseCtx, services: { procesar: () => ({ ok: true }) } };
+
+  const delaysRegistrados: number[] = [];
+  const mockDelayFn = async (ms: number) => {
+    delaysRegistrados.push(ms);
+  };
+
+  // 1. Éxito tras 2 intentos fallidos (3 intentos en total)
+  let intentosRealizados = 0;
+  const resExito = await nodeActionHandler({
+    node: {
+      type: "action",
+      action: () => {
+        intentosRealizados++;
+        if (intentosRealizados < 3) {
+          throw new Error("ERROR_TEMPORAL");
+        }
+      },
+      onSuccess: "siguiente_nodo",
+      retry: {
+        maxAttempts: 3,
+        initialIntervalMs: 100,
+        backoffCoefficient: 2,
+      },
+    },
+    state: { saldo: 100 },
+    context: contextFull,
+    delayFn: mockDelayFn,
+  });
+
+  assert.equal(resExito.type, "NEXT");
+  assert.equal(intentosRealizados, 3);
+  assert.deepStrictEqual(delaysRegistrados, [100, 200]);
+
+  // 2. Reintento sobre código de error string mapeado en retryableErrors
+  let intentosString = 0;
+  const delaysString: number[] = [];
+  const resString = await nodeActionHandler({
+    node: {
+      type: "action",
+      action: () => {
+        intentosString++;
+        if (intentosString < 2) {
+          return "TIMEOUT_PASARELA";
+        }
+      },
+      onSuccess: "siguiente_nodo",
+      onError: { TIMEOUT_PASARELA: "nodo_reintento" },
+      retry: {
+        maxAttempts: 2,
+        initialIntervalMs: 50,
+        retryableErrors: ["TIMEOUT_PASARELA"],
+      },
+    },
+    state: { saldo: 100 },
+    context: contextFull,
+    delayFn: async (ms) => {
+      delaysString.push(ms);
+    },
+  });
+
+  assert.equal(resString.type, "NEXT");
+  assert.equal(intentosString, 2);
+  assert.deepStrictEqual(delaysString, [50]);
+});

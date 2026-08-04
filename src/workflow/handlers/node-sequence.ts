@@ -1,4 +1,5 @@
 import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
+import { executeActionWithRetry } from "./node-action.js";
 
 /**
  * Estrategia de ejecución para nodos de tipo 'sequence'.
@@ -74,7 +75,11 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
 
     if (typeof step === "object" && step !== null) {
       if (step.type === "action" || typeof step.action === "function") {
-        const result = await step.action(currentState, stepContext);
+        const result = await executeActionWithRetry(
+          () => step.action(currentState, stepContext),
+          step.retry,
+          delayFn,
+        );
         if (
           typeof result === "object" &&
           result?.__type_navigation__ === "SUSPEND_NODE"
