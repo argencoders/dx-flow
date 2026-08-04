@@ -51,13 +51,24 @@
 
 ### 🔄 Paso 5: Fisonomías Avanzadas y Azúcar Sintáctico (`src/workflow/features/`)
 
-- [x] **Fase 5.1: Secuencias Implícitas / Pipelines (`type: "sequence"`):** Ejecución secuencial y ordenada de arreglos de pasos.
+- [x] **Fase 5.1: Secuencias Implícitas / Pipelines (`type: "sequence"`):** Ejecución secuencial de pasos inline puros (`InlineActionStep`, `InlineDelayStep`, `InlineChooseStep` y `Shorthand Action Callbacks`). Propagación de estado mutado en tiempo real entre pasos, fallthrough en `choose` y suspensión durable por sub-paso (`#step-i`).
 - [x] **Fase 5.2: Bucle e Iteración Condicional (`type: "repeat"`):** Estructura de iteración condicional `until(state)` y límites por `count`.
 - [x] **Fase 5.3: Paralelismo y Concurrencia (`type: "parallel"`):** Ejecución de múltiples ramas en paralelo (`branches`) con barrera de sincronización convergente.
 - [ ] **Fase 5.4: Ergonomía de DX Avanzada: Fluent Node Builders (`node.action(...)`) y Nodos Anónimos/Inline Mixins:** Helper fuertemente tipado `node` y soporte para nodos inline dentro de contenedores.
 - [ ] **Fase 5.5: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial.
 - [ ] **Fase 5.6: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables.
 - [ ] **Fase 5.7: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
+
+---
+
+## 3. Wishlist y Sugerencias de DX Futuras
+
+- **Aislamiento del Reporte de Error en `action` dentro de Pasos Inline:**
+  En la versión actual de TypeScript, cuando un elemento de un arreglo/tupla (`steps: [...]`) no satisface la firma de retorno esperada en `action` (por ejemplo, al retornar un error no declarado en `onError`), la marca de error estático del compilador se coloca sobre la apertura del objeto del paso `{ type: "action", ... }` en lugar de ubicarse directamente sobre la clave de propiedad `action: (state, ctx) => ...`. Queda anotado en la wishlist investigar refinamientos de tipos o futuras versiones de TypeScript que permitan posicionar quirúrgicamente el error en la sub-propiedad `action`.
+
+---
+
+## 4. Próximos Pasos (Paso 6 & Paso 7)
 
 ### ⬜ Paso 6: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
 
