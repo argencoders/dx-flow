@@ -620,3 +620,55 @@ test("Integration E2E - Fase 5: Suspensión y Reanudación Durable dentro de un 
     }
   }
 });
+
+test("Integration E2E - Fase 5.3: Flujo Compuesto con parallel conteniendo branches inline puros", async () => {
+  interface EstadoParallelInline {
+    notificacionEnviada: boolean;
+    auditoriaRegistrada: boolean;
+  }
+
+  const wfParallelInline = defineWorkflow<
+    EstadoParallelInline,
+    Record<string, never>
+  >();
+
+  const graph = wfParallelInline.create({
+    id: "flujo_parallel_inline_e2e",
+    nodes: {
+      start: {
+        type: "parallel",
+        branches: [
+          // Rama 1: Shorthand callback
+          (_state, ctx) => {
+            ctx.mutate({ notificacionEnviada: true });
+          },
+          // Rama 2: Acción inline con mutación
+          {
+            type: "action",
+            action: (_state, ctx) => {
+              ctx.mutate({ auditoriaRegistrada: true });
+            },
+          },
+        ],
+        onSuccess: "fin_exito",
+      },
+      fin_exito: {
+        type: "end",
+        status: "PARALLEL_INLINE_OK",
+      },
+    },
+  });
+
+  const res = await executeWorkflow({
+    graph,
+    initialState: { notificacionEnviada: false, auditoriaRegistrada: false },
+    services: {},
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "PARALLEL_INLINE_OK");
+    assert.equal(res.finalState.notificacionEnviada, true);
+    assert.equal(res.finalState.auditoriaRegistrada, true);
+  }
+});
