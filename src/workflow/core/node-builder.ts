@@ -1,6 +1,7 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
 import { InlineStep, RetryPolicy } from "./validator.js";
+import { WorkflowGraph } from "./factory.js";
 
 /**
  * Parámetros para construir un nodo 'action'.
@@ -112,6 +113,41 @@ export interface EndNodeParams {
 }
 
 /**
+ * Parámetros para construir un nodo 'subworkflow'.
+ */
+export interface SubworkflowNodeParams<
+  TState = any,
+  TServices = any,
+  TNodesList extends string = string,
+  TEvents = Record<string, any>,
+  TSubState = any,
+  TSubNodesList extends string = string,
+> {
+  workflow:
+    | WorkflowGraph<TSubState, TServices, TSubNodesList>
+    | ((
+        state: DeepReadonly<TState>,
+        services: TServices,
+      ) => WorkflowGraph<TSubState, TServices, TSubNodesList>);
+  input?: (state: DeepReadonly<TState>) => TSubState;
+  output?: (
+    context: WorkflowContext<TState, TNodesList, TEvents> & {
+      services: TServices;
+    },
+    subFinalState: DeepReadonly<TSubState>,
+    subResult: any,
+  ) => Promise<void> | void;
+  onSuccess: TNodesList;
+  onError?: Record<string, TNodesList>;
+  compensate?: (
+    state: DeepReadonly<TState>,
+    context: WorkflowContext<TState, TNodesList, TEvents> & {
+      services: TServices;
+    },
+  ) => Promise<void> | void;
+}
+
+/**
  * Interfaz de la factoría fluida de nodos.
  */
 export interface NodeBuilder<
@@ -165,6 +201,28 @@ export interface NodeBuilder<
   >;
 
   end: (params: EndNodeParams) => { type: "end" } & EndNodeParams;
+
+  subworkflow: <
+    TSubState = any,
+    TSubNodesList extends string = string,
+    TNodesList extends string = string,
+  >(
+    params: SubworkflowNodeParams<
+      TState,
+      TServices,
+      TNodesList,
+      TEvents,
+      TSubState,
+      TSubNodesList
+    >,
+  ) => { type: "subworkflow" } & SubworkflowNodeParams<
+    TState,
+    TServices,
+    TNodesList,
+    TEvents,
+    TSubState,
+    TSubNodesList
+  >;
 }
 
 /**
@@ -183,5 +241,6 @@ export function createNodeBuilder<
     repeat: (params: any) => ({ type: "repeat", ...params }),
     parallel: (params: any) => ({ type: "parallel", ...params }),
     end: (params: any) => ({ type: "end", ...params }),
+    subworkflow: (params: any) => ({ type: "subworkflow", ...params }),
   } as NodeBuilder<TState, TServices, TEvents>;
 }

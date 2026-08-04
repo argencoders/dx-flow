@@ -1,5 +1,6 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
+import type { WorkflowGraph } from "./factory.js";
 
 export interface RetryPolicy {
   maxAttempts: number;
@@ -230,6 +231,32 @@ export interface NodeDefinitions<
         onSuccess: TNodesList;
         onError?: Record<string, TNodesList>;
       };
+
+  subworkflow: {
+    type: "subworkflow";
+    workflow:
+      | WorkflowGraph<any, any, any, any>
+      | ((
+          state: DeepReadonly<TState>,
+          services: TServices,
+        ) => WorkflowGraph<any, any, any, any>);
+    input?: (state: DeepReadonly<TState>) => any;
+    output?: (
+      context: WorkflowContext<TState, TNodesList, TEvents> & {
+        services: TServices;
+      },
+      subFinalState: DeepReadonly<any>,
+      subResult: any,
+    ) => Promise<void> | void;
+    onSuccess: TNodesList;
+    onError?: Record<string, TNodesList>;
+    compensate?: (
+      state: DeepReadonly<TState>,
+      context: WorkflowContext<TState, TNodesList, TEvents> & {
+        services: TServices;
+      },
+    ) => Promise<void> | void;
+  };
 }
 
 /**
@@ -344,21 +371,31 @@ export type ValidateGraphNodes<
                       }
                   : NodeDefinitions<TState, TServices, TNodesList, TEvents>["parallel"]
                 : NodeDefinitions<TState, TServices, TNodesList, TEvents>["parallel"]
-              : TNodes[K] extends { onError: infer E }
-                ? E extends Record<string, any>
-                  ? Omit<TNodes[K], "onError" | "action"> & {
-                      type: "action";
-                      action: (
-                        state: DeepReadonly<TState>,
-                        context: WorkflowContext<TState, TNodesList, TEvents> & {
-                          services: TServices;
-                        },
-                      ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
-                      onSuccess: TNodesList;
-                      onError: { [P in keyof E]: TNodesList };
-                    } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+              : TType extends "subworkflow"
+                ? TNodes[K] extends { onError: infer E }
+                  ? E extends Record<string, any>
+                    ? Omit<TNodes[K], "onError"> & {
+                        type: "subworkflow";
+                        onSuccess: TNodesList;
+                        onError: { [P in keyof E]: TNodesList };
+                      }
+                    : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>["subworkflow"]
+                  : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>["subworkflow"]
+                : TNodes[K] extends { onError: infer E }
+                  ? E extends Record<string, any>
+                    ? Omit<TNodes[K], "onError" | "action"> & {
+                        type: "action";
+                        action: (
+                          state: DeepReadonly<TState>,
+                          context: WorkflowContext<TState, TNodesList, TEvents> & {
+                            services: TServices;
+                          },
+                        ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
+                        onSuccess: TNodesList;
+                        onError: { [P in keyof E]: TNodesList };
+                      } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+                    : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
                   : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
-                : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
       : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
     : {
         type: keyof NodeDefinitions<TState, TServices, TNodesList, TEvents>;

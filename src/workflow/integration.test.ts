@@ -1003,3 +1003,82 @@ test("Integration E2E: Inferencia Determinista del Nodo Inicial Sin Clave 'start
     assert.equal(res.history[1].nodeId, "fin_factura");
   }
 });
+
+test("Integration E2E - Fase 5.8: Sub-Workflows (Aislamiento de Estado, Mapeo Input/Output y Compensación)", async () => {
+  interface EstadoPadre {
+    totalPadre: number;
+    subStatusLog: string;
+    compensacionesPadre: string[];
+  }
+
+  interface EstadoHijo {
+    acumuladorHijo: number;
+  }
+
+  const wfPadre = defineWorkflow<EstadoPadre, Record<string, never>>();
+  const wfHijo = defineWorkflow<EstadoHijo, Record<string, never>>();
+
+  const subGraph = wfHijo.create({
+    id: "sub_workflow_calculo",
+    nodes: {
+      multiplicar: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate({ acumuladorHijo: state.acumuladorHijo * 3 });
+        },
+        onSuccess: "fin_sub_exito",
+      },
+      fin_sub_exito: {
+        type: "end",
+        status: "SUB_OK",
+      },
+    },
+  });
+
+  const parentGraph = wfPadre.create({
+    id: "flujo_padre_con_subworkflow",
+    nodes: {
+      start: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate({ totalPadre: 10 });
+        },
+        onSuccess: "ejecutar_sub",
+      },
+      ejecutar_sub: {
+        type: "subworkflow",
+        workflow: subGraph,
+        input: (parentState) => ({ acumuladorHijo: parentState.totalPadre }),
+        output: (ctx, subFinalState) => {
+          ctx.mutate({
+            totalPadre: subFinalState.acumuladorHijo,
+            subStatusLog: "SUB_COMPLETADO_CON_EXITO",
+          });
+        },
+        compensate: (state, ctx) => {
+          ctx.mutate({
+            compensacionesPadre: [...state.compensacionesPadre, "SUBWORKFLOW_ROLLBACK"],
+          });
+        },
+        onSuccess: "fin_padre_exito",
+      },
+      fin_padre_exito: {
+        type: "end",
+        status: "PADRE_OK",
+      },
+    },
+  });
+
+  const res = await executeWorkflow({
+    graph: parentGraph,
+    initialState: { totalPadre: 0, subStatusLog: "", compensacionesPadre: [] },
+    services: {},
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "PADRE_OK");
+    assert.equal(res.finalState.totalPadre, 30); // 10 * 3
+    assert.equal(res.finalState.subStatusLog, "SUB_COMPLETADO_CON_EXITO");
+  }
+});

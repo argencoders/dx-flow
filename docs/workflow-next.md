@@ -58,7 +58,7 @@
 - [x] **Fase 5.5: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables tanto en nodos `action` como en pasos inline.
 - [x] **Fase 5.6: Clasificación Semántica de Nodos Terminales (`result` en `node-end`):** Propiedad opcional `result?: "success" | "error" | "compensate" | "terminate"` (alineada con BPMN 2.0 End Event Result) con fallback automático a `"success"` para alimentar el analizador de topología y los exportadores diagramáticos.
 - [x] **Fase 5.7: Inferencia Determinista del Nodo Inicial:** Resolución automática del nodo de entrada priorizando `startNodeId` explícito, la clave `"start"` si existe, o en su defecto la primera llave declarada sintácticamente en `nodes` aprovechando el orden de inserción garantizado por ECMAScript (`Object.keys(nodes)[0]`).
-- [ ] **Fase 5.8: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
+- [x] **Fase 5.8: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos, aislamiento/propagación de estado vía `input`/`output`, mapeo de errores `onError`, compensaciones Saga y transparencia de suspensión durable.
 
 ---
 

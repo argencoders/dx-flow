@@ -415,6 +415,49 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_error">
     >;
   }
+
+  function testFlujoSubworkflowValido() {
+    const subGrafo = workflow.create({
+      id: "sub_flujo",
+      nodes: {
+        paso_sub: {
+          type: "action",
+          action: (state, ctx) => {
+            ctx.mutate({ intentos: state.intentos + 1 });
+          },
+          onSuccess: "fin_sub",
+        },
+        fin_sub: { type: "end", status: "SUB_DONE" },
+      },
+    });
+
+    const miGrafoSubworkflow = workflow.create({
+      id: "flujo_con_subworkflow",
+      nodes: {
+        start: {
+          type: "subworkflow",
+          workflow: subGrafo,
+          input: (state) => ({ intentos: state.intentos, nombre: state.nombre, esVip: state.esVip }),
+          output: (ctx, subState) => {
+            ctx.mutate({ intentos: subState.intentos });
+          },
+          compensate: (state, ctx) => {
+            ctx.mutate({ nombre: "SUB_COMPENSATED" });
+          },
+          onSuccess: "fin_exito",
+          onError: {
+            SUB_ERROR: "fin_exito",
+          },
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoSubworkflow,
+      WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_exito">
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
@@ -615,6 +658,27 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
           status: "OK",
           // @ts-expect-error - ❌ Valor no permitido en enum de result
           result: "CATEGORIA_INVENTADA",
+        },
+      },
+    });
+  }
+
+  function testFalloSubworkflowOnSuccessInexistente() {
+    const subGrafo = workflow.create({
+      id: "sub_flujo_err",
+      nodes: {
+        fin_sub: { type: "end", status: "DONE" },
+      },
+    });
+
+    workflow.create({
+      id: "subworkflow_enlace_roto",
+      nodes: {
+        start: {
+          type: "subworkflow",
+          workflow: subGrafo,
+          // @ts-expect-error - ❌ onSuccess apunta a un nodo fantasma
+          onSuccess: "NODO_FANTASMA_PADRE",
         },
       },
     });
