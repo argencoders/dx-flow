@@ -9,7 +9,7 @@ interface TestState {
 
 const wf = defineWorkflow<TestState, any>();
 
-test("Workflow - Exporters Mermaid: Flujo lineal simple (graph TD)", () => {
+test("Workflow - Exporters Mermaid: Flujo lineal simple (graph LR por omisión)", () => {
   const graph = wf.create({
     id: "wf_lineal",
     nodes: {
@@ -28,7 +28,7 @@ test("Workflow - Exporters Mermaid: Flujo lineal simple (graph TD)", () => {
 
   const code = exportToMermaid(graph);
 
-  assert.ok(code.includes("graph TD"));
+  assert.ok(code.includes("graph LR"));
   assert.ok(code.includes('start["action: start"]'));
   assert.ok(code.includes('fin(["End: fin"])'));
   assert.ok(code.includes("start -->|onSuccess| fin"));
@@ -36,9 +36,9 @@ test("Workflow - Exporters Mermaid: Flujo lineal simple (graph TD)", () => {
   assert.ok(code.includes("class fin success;"));
 });
 
-test("Workflow - Exporters Mermaid: Dirección personalizada (LR)", () => {
+test("Workflow - Exporters Mermaid: Dirección personalizada (TD)", () => {
   const graph = wf.create({
-    id: "wf_lr",
+    id: "wf_td",
     nodes: {
       paso_a: {
         type: "action",
@@ -49,9 +49,9 @@ test("Workflow - Exporters Mermaid: Dirección personalizada (LR)", () => {
     },
   });
 
-  const code = exportToMermaid(graph, { direction: "LR" });
+  const code = exportToMermaid(graph, { direction: "TD" });
 
-  assert.ok(code.startsWith("graph LR"));
+  assert.ok(code.startsWith("graph TD"));
 });
 
 test("Workflow - Exporters Mermaid: Ramificaciones choose, onError, delay y estilos CSS semánticos", () => {

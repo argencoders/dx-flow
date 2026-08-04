@@ -37,7 +37,7 @@ export function exportToMermaid(
       ? (graph as IRGraph)
       : extractWorkflowIR(graph as WorkflowGraph<any, any, any, any>, options);
 
-  const direction = options.direction || "TD";
+  const direction = options.direction || "LR";
   const lines: string[] = [];
 
   lines.push(`graph ${direction}`);
