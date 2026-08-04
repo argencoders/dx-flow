@@ -98,8 +98,17 @@ export const nodeActionHandler: NodeHandler<any, any, any> = async ({
     );
   }
 
+  let currentState = state;
+  const actionContext = {
+    ...context,
+    mutate: (patch: any) => {
+      currentState = { ...currentState, ...patch };
+      context.mutate(patch);
+    },
+  };
+
   const result = await executeActionWithRetry(
-    () => node.action(state, context),
+    () => node.action(currentState, actionContext),
     node.retry,
     delayFn,
   );

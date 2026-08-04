@@ -672,3 +672,84 @@ test("Integration E2E - Fase 5.3: Flujo Compuesto con parallel conteniendo branc
     assert.equal(res.finalState.auditoriaRegistrada, true);
   }
 });
+
+test("Integration E2E - Fase 5.4: Flujo con Reintentos Automáticos (RetryPolicy y Backoff Exponencial)", async () => {
+  interface EstadoRetryE2E {
+    intentosNodo: number;
+    intentosPasoInline: number;
+    resultadoFinal: string;
+  }
+
+  const wfRetry = defineWorkflow<EstadoRetryE2E, Record<string, never>>();
+
+  const graph = wfRetry.create({
+    id: "flujo_retry_e2e",
+    nodes: {
+      start: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate({ intentosNodo: state.intentosNodo + 1 });
+          if (state.intentosNodo + 1 < 3) {
+            throw new Error("FALLO_TRANSITORIO_RED");
+          }
+        },
+        retry: {
+          maxAttempts: 3,
+          initialIntervalMs: 100,
+          backoffCoefficient: 2,
+        },
+        onSuccess: "paso_inline_retry",
+      },
+      paso_inline_retry: {
+        type: "sequence",
+        steps: [
+          {
+            type: "action",
+            action: (state, ctx) => {
+              ctx.mutate({ intentosPasoInline: state.intentosPasoInline + 1 });
+              if (state.intentosPasoInline + 1 < 2) {
+                return "ERROR_TEMPORAL_INLINE";
+              }
+              ctx.mutate({ resultadoFinal: "EXITO" });
+            },
+            retry: {
+              maxAttempts: 2,
+              initialIntervalMs: 50,
+              retryableErrors: ["ERROR_TEMPORAL_INLINE"],
+            },
+          },
+        ],
+        onSuccess: "fin_exito",
+      },
+      fin_exito: {
+        type: "end",
+        status: "RETRY_E2E_OK",
+      },
+    },
+  });
+
+  const delaysRegistrados: number[] = [];
+
+  const res = await executeWorkflow({
+    graph,
+    initialState: {
+      intentosNodo: 0,
+      intentosPasoInline: 0,
+      resultadoFinal: "PENDIENTE",
+    },
+    services: {},
+    delayFn: async (ms) => {
+      delaysRegistrados.push(ms);
+    },
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "RETRY_E2E_OK");
+    assert.equal(res.finalState.intentosNodo, 3);
+    assert.equal(res.finalState.intentosPasoInline, 2);
+    assert.equal(res.finalState.resultadoFinal, "EXITO");
+    // Delays acumulados: 100ms, 200ms para el nodo action + 50ms para el paso inline
+    assert.deepStrictEqual(delaysRegistrados, [100, 200, 50]);
+  }
+});
