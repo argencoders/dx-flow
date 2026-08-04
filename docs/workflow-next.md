@@ -68,6 +68,10 @@
   En la versión actual de TypeScript, cuando un elemento de un arreglo/tupla (`steps: [...]`) no satisface la firma de retorno esperada en `action` (por ejemplo, al retornar un error no declarado en `onError`), la marca de error estático del compilador se coloca sobre la apertura del objeto del paso `{ type: "action", ... }` en lugar de ubicarse directamente sobre la clave de propiedad `action: (state, ctx) => ...`. Queda anotado en la wishlist investigar refinamientos de tipos o futuras versiones de TypeScript que permitan posicionar quirúrgicamente el error en la sub-propiedad `action`.
 - **Estrategia de Fusión y Manejo de Conflictos en Mutaciones Concurrentes (`parallel`):**
   Analizar patrones avanzados de consolidación de estado (ej. merge profundo de parches, detección estática/dinámica de colisiones de campos o mutadores por slice de estado) cuando ramas concurrentes ejecutan `ctx.mutate()` en paralelo.
+- **Propiedad `result` / `outcome` en Nodos Terminales (`node-end`):**
+  Incorporación de la propiedad opcional `result?: "success" | "error" | "compensate" | "terminate"` (alineada con la especificación BPMN 2.0 End Event Result) en `NodeDefinitions["end"]` para alimentar el analizador de topología y los exportadores diagramáticos sin heurísticas sobre el string de `status`.
+- **Inferencia Determinista del Nodo Inicial (`startNodeId`):**
+  Resolución automática del nodo de entrada priorizando `startNodeId` explícito, la clave `"start"` si existe, o en su defecto la primera llave declarada sintácticamente en `nodes` aprovechando el orden de inserción garantizado por ECMAScript (`Object.keys(nodes)[0]`).
 
 ---
 
@@ -75,13 +79,13 @@
 
 ### ⬜ Paso 6: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
 
-- [ ] **Auditoría de Alcanzabilidad (Reachability):** Algoritmo BFS/DFS que verifique que todos los nodos declarados en el grafo son alcanzables desde el nodo `start`.
-- [ ] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end` o punto de suspensión.
+- [ ] **Auditoría de Alcanzabilidad (Reachability):** Algoritmo BFS/DFS que verifique que todos los nodos declarados en el grafo son alcanzables desde el nodo inicial (`start` o primer nodo).
+- [ ] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end` (auditando sus variantes `result`) o punto de suspensión.
 - [ ] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición apunta.
 - [ ] **Suite de Pruebas Atómicas:** `src/workflow/analyzer.test.ts`.
 
 ### ⬜ Paso 7: Exportadores Visuales e Interoperabilidad (Mermaid & BPMN 2.0) (`src/workflow/exporters/`)
 
-- [ ] **Exportador Mermaid.js (`src/workflow/exporters/mermaid.ts`):** Generar diagramas de flujo `graph TD`.
-- [ ] **Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):** Generar XML estándar compatible con Camunda Modeler.
+- [ ] **Exportador Mermaid.js (`src/workflow/exporters/mermaid.ts`):** Generar diagramas de flujo `graph TD` aplicando clases de estilo diferenciadas según la propiedad `result` en nodos `end`.
+- [ ] **Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):** Generar XML estándar compatible con Camunda Modeler mapeando `result` a los subtipos oficiales `<bpmn:errorEventDefinition>`, `<bpmn:compensateEventDefinition>`, etc.
 - [ ] **Suite de Pruebas de Exportación:** `src/workflow/exporters/mermaid.test.ts` y `bpmn.test.ts`.
