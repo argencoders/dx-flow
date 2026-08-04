@@ -803,3 +803,95 @@ test("Integration E2E - Fase 5.4: Fallo de Reintentos tras Agotar maxAttempts (N
     assert.deepStrictEqual(delays, [50]);
   }
 });
+
+test("Integration E2E - Fase 5.5: Patrón Saga y Rollback Automático de Compensaciones en Orden Inverso (LIFO)", async () => {
+  interface EstadoSagaViaje {
+    vueloReservado: boolean;
+    hotelReservado: boolean;
+    cobroExitoso: boolean;
+    ordenCompensaciones: string[];
+  }
+
+  const wfSaga = defineWorkflow<EstadoSagaViaje, Record<string, never>>();
+
+  const graph = wfSaga.create({
+    id: "saga_reserva_viaje_e2e",
+    nodes: {
+      start: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate({ vueloReservado: true });
+        },
+        compensate: (state, ctx) => {
+          ctx.mutate({
+            vueloReservado: false,
+            ordenCompensaciones: [...state.ordenCompensaciones, "CANCELAR_VUELO"],
+          });
+        },
+        onSuccess: "secuencia_hotel",
+      },
+      secuencia_hotel: {
+        type: "sequence",
+        steps: [
+          {
+            type: "action",
+            action: (state, ctx) => {
+              ctx.mutate({ hotelReservado: true });
+            },
+            compensate: (state, ctx) => {
+              ctx.mutate({
+                hotelReservado: false,
+                ordenCompensaciones: [...state.ordenCompensaciones, "CANCELAR_HOTEL"],
+              });
+            },
+          },
+        ],
+        onSuccess: "procesar_pago_saga",
+      },
+      procesar_pago_saga: {
+        type: "action",
+        action: () => {
+          // ❌ Simula un error no recuperable en el servicio de pago
+          throw new Error("ERROR_PASARELA_SAGA_FATAL");
+        },
+        onSuccess: "fin_exito",
+      },
+      fin_exito: { type: "end", status: "SAGA_OK" },
+    },
+  });
+
+  const estadoInicial: EstadoSagaViaje = {
+    vueloReservado: false,
+    hotelReservado: false,
+    cobroExitoso: false,
+    ordenCompensaciones: [],
+  };
+
+  const ordenCompensacionesAuditoria: string[] = [];
+
+  // Al lanzar la ejecución, la excepción no capturada en procesar_pago_saga dispara el rollback de las compensaciones
+  await assert.rejects(
+    async () => {
+      await executeWorkflow({
+        graph,
+        initialState: estadoInicial,
+        services: {},
+        onMutation: (_patch, newState) => {
+          if (newState.ordenCompensaciones.length > ordenCompensacionesAuditoria.length) {
+            const ultimoItem = newState.ordenCompensaciones[newState.ordenCompensaciones.length - 1];
+            ordenCompensacionesAuditoria.push(ultimoItem);
+          }
+        },
+      });
+    },
+    {
+      message: "ERROR_PASARELA_SAGA_FATAL",
+    },
+  );
+
+  // Verificamos que las compensaciones se ejecutaron en orden LIFO inverso: HOTEL primero, VUELO después
+  assert.deepStrictEqual(ordenCompensacionesAuditoria, [
+    "CANCELAR_HOTEL",
+    "CANCELAR_VUELO",
+  ]);
+});

@@ -1,3 +1,5 @@
+import { DeepReadonly } from "../../core/deep-readonly.js";
+
 /**
  * Define la firma del contrato de navegación hacia el siguiente nodo de un workflow.
  */
@@ -46,6 +48,21 @@ export interface WorkflowContext<
    * Payload inyectado cuando el workflow se reanuda tras recibir un evento o señal externa.
    */
   signalPayload?: TEvents[keyof TEvents];
+
+  /**
+   * Registra un callback de compensación en la pila acumulada (LIFO).
+   */
+  registerCompensation?: (
+    fn: (
+      state: DeepReadonly<TState>,
+      context: WorkflowContext<TState, TNodesList, TEvents> & { services: any },
+    ) => Promise<void> | void,
+  ) => void;
+
+  /**
+   * Ejecuta el rollback de todas las compensaciones registradas en orden inverso (LIFO).
+   */
+  compensate?: () => Promise<void>;
 }
 
 /**
@@ -57,8 +74,16 @@ export function createRuntimeContext<
   TEvents = Record<string, any>,
 >(
   onMutation: (patch: Partial<TState>) => void,
+  compensationStack: Array<
+    (
+      state: DeepReadonly<TState>,
+      context: WorkflowContext<TState, TNodesList, TEvents> & { services: any },
+    ) => Promise<void> | void
+  > = [],
+  getCurrentState?: () => DeepReadonly<TState>,
+  getServices?: () => any,
 ): WorkflowContext<TState, TNodesList, TEvents> {
-  return {
+  const context: WorkflowContext<TState, TNodesList, TEvents> = {
     next: (destination: TNodesList): NavigationResult => ({
       __type_navigation__: "NEXT_NODE",
       target: destination,
@@ -70,5 +95,24 @@ export function createRuntimeContext<
     mutate: (patch: Partial<TState>): void => {
       onMutation(patch);
     },
+    registerCompensation: (fn) => {
+      compensationStack.push(fn);
+    },
+    compensate: async () => {
+      while (compensationStack.length > 0) {
+        const fn = compensationStack.pop();
+        if (fn) {
+          const state = getCurrentState ? getCurrentState() : ({} as any);
+          const services = getServices ? getServices() : {};
+          const compContext = {
+            ...context,
+            services,
+          };
+          await fn(state, compContext);
+        }
+      }
+    },
   };
+
+  return context;
 }

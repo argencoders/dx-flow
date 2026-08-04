@@ -115,6 +115,12 @@ export const nodeActionHandler: NodeHandler<any, any, any> = async ({
 
   // 1. Éxito: La función retornó void / undefined -> Navegar a onSuccess
   if (result === undefined || result === null) {
+    if (
+      typeof node.compensate === "function" &&
+      typeof context.registerCompensation === "function"
+    ) {
+      context.registerCompensation((st, ctx) => node.compensate(st, ctx));
+    }
     return {
       type: "NEXT",
       target: node.onSuccess,

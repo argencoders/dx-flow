@@ -265,3 +265,76 @@ test("Workflow - NodeAction: Política de Reintentos (RetryPolicy) y Backoff Exp
   assert.equal(intentosString, 2);
   assert.deepStrictEqual(delaysString, [50]);
 });
+
+test("Workflow - NodeAction: Registro de Compensaciones en Pila LIFO y Rollback (Saga Pattern)", async () => {
+  const pilaCompensaciones: Array<any> = [];
+  let estadoActual: EstadoTest = { saldo: 100 };
+
+  const runtimeCtx = createRuntimeContext<EstadoTest, NodosTest>(
+    (patch) => {
+      estadoActual = { ...estadoActual, ...patch };
+    },
+    pilaCompensaciones,
+    () => estadoActual as any,
+    () => ({ procesar: () => ({ ok: true }) }),
+  );
+
+  const contextFull = {
+    ...runtimeCtx,
+    services: { procesar: () => ({ ok: true }) },
+  };
+
+  const ordenEjecucionCompensacion: string[] = [];
+
+  // Acciones 1 y 2
+  const nodoCobro: NodeActionDef = {
+    type: "action",
+    action: (state, ctx) => {
+      ctx.mutate({ saldo: state.saldo - 40 });
+    },
+    compensate: (state, ctx) => {
+      ordenEjecucionCompensacion.push("REEMBOLSAR_COBRO");
+      ctx.mutate({ saldo: state.saldo + 40 });
+    },
+    onSuccess: "siguiente_nodo",
+  };
+
+  const nodoReserva: NodeActionDef = {
+    type: "action",
+    action: (state, ctx) => {
+      ctx.mutate({ saldo: state.saldo - 10 });
+    },
+    compensate: (state, ctx) => {
+      ordenEjecucionCompensacion.push("LIBERAR_RESERVA");
+      ctx.mutate({ saldo: state.saldo + 10 });
+    },
+    onSuccess: "siguiente_nodo",
+  };
+
+  // Ejecutar Acción 1 (Cobro)
+  await nodeActionHandler({
+    node: nodoCobro,
+    state: estadoActual,
+    context: contextFull,
+  });
+
+  // Ejecutar Acción 2 (Reserva)
+  await nodeActionHandler({
+    node: nodoReserva,
+    state: estadoActual,
+    context: contextFull,
+  });
+
+  assert.equal(estadoActual.saldo, 50);
+  assert.equal(pilaCompensaciones.length, 2);
+
+  // Ejecutar Rollback LIFO
+  await contextFull.compensate?.();
+
+  assert.deepStrictEqual(ordenEjecucionCompensacion, [
+    "LIBERAR_RESERVA",
+    "REEMBOLSAR_COBRO",
+  ]);
+  assert.equal(estadoActual.saldo, 100);
+  assert.equal(pilaCompensaciones.length, 0);
+});

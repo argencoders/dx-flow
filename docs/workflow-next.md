@@ -55,7 +55,7 @@
 - [x] **Fase 5.2: Bucle e Iteración Condicional (`type: "repeat"`):** Estructura de iteración condicional `until(state)` y límites por `count`, con soporte dual para `target` (clave registrada) y `steps: Array<InlineStep>` (pipeline de pasos inline puros con propagación de estado).
 - [x] **Fase 5.3: Paralelismo y Concurrencia (`type: "parallel"`):** Ejecución de múltiples ramas en paralelo (`branches`) con barrera de sincronización convergente, con soporte dual para `Array<TNodesList>` (claves registradas) y `Array<InlineStep>` (ramas inline con contexto de mutación aislado).
 - [x] **Fase 5.4: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial, jitter, cap máximo y errores reintentables (`retryableErrors`) tanto en nodos `action` como en pasos inline `InlineActionStep`.
-- [ ] **Fase 5.5: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables.
+- [x] **Fase 5.5: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables tanto en nodos `action` como en pasos inline.
 - [ ] **Fase 5.6: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
 
 ---

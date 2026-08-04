@@ -88,6 +88,7 @@ export async function executeWorkflow<
     startNodeId ?? ("start" as TNodesList);
 
   const history: Array<ExecutionStepRecord<TNodesList>> = [];
+  const compensationStack: Array<(state: any, context: any) => Promise<void> | void> = [];
   const activeHandlers = (handlers ?? defaultNodeHandlers) as NodeHandlersMap<
     TState,
     TServices,
@@ -97,6 +98,16 @@ export async function executeWorkflow<
   while (currentNodeId) {
     const node: any = graph.nodes[currentNodeId];
     if (!node) {
+      const errContext = createRuntimeContext<TState, TNodesList>(
+        (patch) => {
+          currentState = { ...currentState, ...patch };
+          onMutation?.(patch, currentState as DeepReadonly<TState>);
+        },
+        compensationStack,
+        () => currentState as DeepReadonly<TState>,
+        () => services,
+      );
+      await errContext.compensate?.();
       throw new Error(
         `❌ ERROR: El nodo '${String(
           currentNodeId,
@@ -108,6 +119,16 @@ export async function executeWorkflow<
       | NodeHandler<TState, TServices, TNodesList>
       | undefined = activeHandlers[node.type];
     if (typeof handler !== "function") {
+      const errContext = createRuntimeContext<TState, TNodesList>(
+        (patch) => {
+          currentState = { ...currentState, ...patch };
+          onMutation?.(patch, currentState as DeepReadonly<TState>);
+        },
+        compensationStack,
+        () => currentState as DeepReadonly<TState>,
+        () => services,
+      );
+      await errContext.compensate?.();
       throw new Error(
         `❌ ERROR: No existe un handler registrado para procesar el tipo de nodo '${node.type}'.`,
       );
@@ -123,6 +144,9 @@ export async function executeWorkflow<
         currentState = { ...currentState, ...patch };
         onMutation?.(patch, currentState as DeepReadonly<TState>);
       },
+      compensationStack,
+      () => currentState as DeepReadonly<TState>,
+      () => services,
     );
 
     const contextFull = {
@@ -131,12 +155,18 @@ export async function executeWorkflow<
       signalPayload,
     };
 
-    const result: NodeHandlerResult<TNodesList> = await handler({
-      node: nodeToExecute,
-      state: currentState as DeepReadonly<TState>,
-      context: contextFull,
-      delayFn,
-    });
+    let result: NodeHandlerResult<TNodesList>;
+    try {
+      result = await handler({
+        node: nodeToExecute,
+        state: currentState as DeepReadonly<TState>,
+        context: contextFull,
+        delayFn,
+      });
+    } catch (error) {
+      await runtimeContext.compensate?.();
+      throw error;
+    }
 
     const timestamp = Date.now();
 

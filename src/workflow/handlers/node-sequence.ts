@@ -102,6 +102,13 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
             target: errorTarget,
           };
         }
+        if (
+          (result === undefined || result === null) &&
+          typeof step.compensate === "function" &&
+          typeof context.registerCompensation === "function"
+        ) {
+          context.registerCompensation((st, ctx) => step.compensate(st, ctx));
+        }
         continue;
       }
 
