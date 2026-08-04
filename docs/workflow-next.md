@@ -47,15 +47,17 @@
   - Inferencia automática desde `WorkflowGraph` para `initialState`, `services` y `onMutation`.
   - Integración nativa con `defineMutations` de Sprint 1 (`src/mutations/mutations.ts`) eliminando el `reducer` manual.
   - Hook observador `onMutation(key, payload, newState)` para auditoría y EventLog.
-- [ ] **Fase 4.8:** Test de integración e2e multinodo simulando suspensión por webhook/evento externo (`src/workflow/integration.test.ts`).
+- [x] **Fase 4.8:** Test de integración e2e multinodo simulando suspensión por webhook/evento externo (`src/workflow/integration.test.ts`).
 
-### ⬜ Paso 5: Fisonomías Avanzadas y Azúcar Sintáctico (`src/workflow/features/`)
+### 🔄 Paso 5: Fisonomías Avanzadas y Azúcar Sintáctico (`src/workflow/features/`)
 
-- [ ] **Fase 5.1: Secuencias Implícitas / Pipelines (`sequence([...])`):** Azúcar sintáctico para encadenar arreglos de pasos sin necesidad de nombrar llaves explícitas para flujos lineales.
-- [ ] **Fase 5.2: Paralelismo y Concurrencia (`type: "parallel"`):** Ejecución de múltiples ramas en paralelo (`branches`) con barrera de sincronización (`onJoin`).
-- [ ] **Fase 5.3: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial.
-- [ ] **Fase 5.4: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables.
-- [ ] **Fase 5.5: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
+- [x] **Fase 5.1: Secuencias Implícitas / Pipelines (`type: "sequence"`):** Ejecución secuencial y ordenada de arreglos de pasos.
+- [x] **Fase 5.2: Bucle e Iteración Condicional (`type: "repeat"`):** Estructura de iteración condicional `until(state)` y límites por `count`.
+- [x] **Fase 5.3: Paralelismo y Concurrencia (`type: "parallel"`):** Ejecución de múltiples ramas en paralelo (`branches`) con barrera de sincronización convergente.
+- [ ] **Fase 5.4: Ergonomía de DX Avanzada: Fluent Node Builders (`node.action(...)`) y Nodos Anónimos/Inline Mixins:** Helper fuertemente tipado `node` y soporte para nodos inline dentro de contenedores.
+- [ ] **Fase 5.5: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial.
+- [ ] **Fase 5.6: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables.
+- [ ] **Fase 5.7: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
 
 ### ⬜ Paso 6: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
 

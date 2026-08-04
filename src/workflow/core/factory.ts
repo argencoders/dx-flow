@@ -1,4 +1,5 @@
 import { NodeDefinitions, ValidateGraphNodes } from "./validator.js";
+import { createNodeBuilder } from "./node-builder.js";
 
 /**
  * Representación del Grafo de Workflow conservando las marcas de tipo de su dominio.
@@ -29,7 +30,10 @@ export const defineWorkflow = <
   TMutations,
   TEvents = Record<string, any>,
 >() => {
+  const node = createNodeBuilder<TState, TServices, TMutations, TEvents>();
+
   return {
+    node,
     /**
      * Construye y blinda la consistencia lógica de un Grafo de Workflow.
      */

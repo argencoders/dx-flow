@@ -118,6 +118,55 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
 
     type TestAsignabilidad = Expect<typeof miGrafoCompuesto, typeof miGrafoCompuesto>;
   }
+
+  function testNodeBuilderSintaxisLimpia() {
+    const { node, create } = defineWorkflow<
+      EstadoSimulado,
+      typeof serviciosMock,
+      MutacionesSimuladas
+    >();
+
+    const miGrafoTradicional = create({
+      id: "flujo_demostracion",
+      nodes: {
+        start: {
+          type: "action",
+          action: (state, ctx) => {
+            ctx.mutate("INCREMENTAR_INTENTOS");
+          },
+          onSuccess: "pausa_espera",
+        },
+        pausa_espera: {
+          type: "delay",
+          durationMs: 500,
+          onTimeout: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
+
+    const miGrafoConNodeBuilders = create({
+      id: "flujo_demostracion",
+      nodes: {
+        start: node.action({
+          action: (state, ctx) => {
+            ctx.mutate("INCREMENTAR_INTENTOS");
+          },
+          onSuccess: "pausa_espera",
+        }),
+        pausa_espera: node.delay({
+          durationMs: 500,
+          onTimeout: "fin_exito",
+        }),
+        fin_exito: node.end({ status: "SUCCESS" }),
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoConNodeBuilders,
+      typeof miGrafoTradicional
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
