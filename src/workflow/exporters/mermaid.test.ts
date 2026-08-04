@@ -133,10 +133,11 @@ test("Workflow - Exporters Mermaid: Fisonomías avanzadas (repeat, parallel, sub
   assert.ok(code.includes("class fin_matar terminate;"));
 });
 
-test("Workflow - Exporters Mermaid: Generación de vista previa visual (Snapshot Markdown)", async () => {
+test("Workflow - Exporters Mermaid: Generación de vistas previas visuales (mermaid-exporter-snapshots.md)", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
 
+  // Caso 1: Flujo Ramificado y Temporizado
   const graphRamificado = wf.create({
     id: "wf_demo_ramificado",
     nodes: {
@@ -161,25 +162,98 @@ test("Workflow - Exporters Mermaid: Generación de vista previa visual (Snapshot
     },
   });
 
+  // Caso 2: Saga y Paralelismo con resultados Compensate y Terminate
+  const subGraph = wf.create({
+    id: "sub_audit",
+    nodes: {
+      auditar: { type: "end", status: "AUDITED" },
+    },
+  });
+
+  const graphSaga = wf.create({
+    id: "wf_demo_saga",
+    nodes: {
+      bucle_reintentos: {
+        type: "repeat",
+        target: "procesar_paralelo",
+        onSuccess: "sub_auditoria",
+      },
+      procesar_paralelo: {
+        type: "parallel",
+        branches: ["cancelacion_saga"],
+        onSuccess: "bucle_reintentos",
+      },
+      sub_auditoria: {
+        type: "subworkflow",
+        workflow: subGraph,
+        onSuccess: "abortar_emergencia",
+      },
+      cancelacion_saga: { type: "end", status: "ROLLBACK_DONE", result: "compensate" },
+      abortar_emergencia: { type: "end", status: "KILLED", result: "terminate" },
+    },
+  });
+
+  // Caso 3: Flujo Horizontal (LR) con Bucle de Notificaciones
+  const graphHorizontal = wf.create({
+    id: "wf_demo_horizontal",
+    nodes: {
+      preparar_envio: {
+        type: "action",
+        action: () => {},
+        onSuccess: "reintentar_notificacion",
+      },
+      reintentar_notificacion: {
+        type: "repeat",
+        count: 3,
+        target: "enviado_ok",
+        onSuccess: "error_notificacion",
+      },
+      enviado_ok: { type: "end", status: "SENT", result: "success" },
+      error_notificacion: { type: "end", status: "MAX_RETRIES", result: "error" },
+    },
+  });
+
   const mmdRamificado = exportToMermaid(graphRamificado);
+  const mmdSaga = exportToMermaid(graphSaga);
+  const mmdHorizontal = exportToMermaid(graphHorizontal, { direction: "LR" });
 
   const snapshotDir = path.join(process.cwd(), "src", "workflow", "exporters", "__snapshots__");
   if (!fs.existsSync(snapshotDir)) {
     fs.mkdirSync(snapshotDir, { recursive: true });
   }
 
-  const markdownContent = `# Vista Previa de Diagramas Mermaid Generados
+  const markdownContent = `# Snapshots Visuales del Exportador Mermaid (\`mermaid.test.ts\`)
 
-Este archivo se genera automáticamente durante la ejecución de \`npm run test\` para permitir la vista previa visual dentro del editor.
+Este archivo se genera automáticamente durante la ejecución de \`npm run test\` para visualizar los diagramas producidos por \`exportToMermaid\`.
 
-## Diagrama: Flujo Ramificado y Temporizado
+---
+
+## Caso 1: Flujo Ramificado con Reintentos y Temporizador (\`direction: "TD"\`)
 
 \`\`\`mermaid
 ${mmdRamificado}
 \`\`\`
+
+---
+
+## Caso 2: Flujo Avanzado de Saga, Paralelismo y Sub-Workflows (\`result: "compensate" | "terminate"\`)
+
+\`\`\`mermaid
+${mmdSaga}
+\`\`\`
+
+---
+
+## Caso 3: Flujo Horizontal con Bucle de Reintento de Notificación (\`direction: "LR"\`)
+
+\`\`\`mermaid
+${mmdHorizontal}
+\`\`\`
 `;
 
-  fs.writeFileSync(path.join(snapshotDir, "mermaid-preview.md"), markdownContent, "utf-8");
-  assert.ok(fs.existsSync(path.join(snapshotDir, "mermaid-preview.md")));
+  const snapshotFilePath = path.join(snapshotDir, "mermaid-exporter-snapshots.md");
+  fs.writeFileSync(snapshotFilePath, markdownContent, "utf-8");
+  assert.ok(fs.existsSync(snapshotFilePath));
 });
+
 
