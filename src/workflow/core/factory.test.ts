@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { Expect } from "../../core/types-testing.js";
-import { defineWorkflow } from "./factory.js";
+import { defineWorkflow, WorkflowGraph } from "./factory.js";
 
 interface EstadoSimulado {
   intentos: number;
@@ -67,7 +67,20 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<typeof miGrafo, typeof miGrafo>;
+    type TestAsignabilidad = Expect<
+      typeof miGrafo,
+      WorkflowGraph<
+        EstadoSimulado,
+        typeof serviciosMock,
+        | "start"
+        | "intentar_cobro"
+        | "evaluar_reintento"
+        | "pausa"
+        | "esperar_confirmacion"
+        | "fin_exito"
+        | "fin_fallo"
+      >
+    >;
   }
 
   function testFlujoConNodosCompuestosFase5() {
@@ -115,7 +128,19 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<typeof miGrafoCompuesto, typeof miGrafoCompuesto>;
+    type TestAsignabilidad = Expect<
+      typeof miGrafoCompuesto,
+      WorkflowGraph<
+        EstadoSimulado,
+        typeof serviciosMock,
+        | "start"
+        | "paso_1"
+        | "paso_2"
+        | "bucle_reintentos"
+        | "ejecucion_paralela"
+        | "fin_exito"
+      >
+    >;
   }
 
   function testNodeBuilderSintaxisLimpia() {
@@ -210,7 +235,11 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
 
     type TestAsignabilidad = Expect<
       typeof miGrafoSequenceInline,
-      typeof miGrafoSequenceInline
+      WorkflowGraph<
+        EstadoSimulado,
+        typeof serviciosMock,
+        "start" | "fin_exito" | "fin_fallo"
+      >
     >;
   }
 
@@ -239,7 +268,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
 
     type TestAsignabilidad = Expect<
       typeof miGrafoRepeatInline,
-      typeof miGrafoRepeatInline
+      WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_exito">
     >;
   }
 
@@ -268,7 +297,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
 
     type TestAsignabilidad = Expect<
       typeof miGrafoParallelInline,
-      typeof miGrafoParallelInline
+      WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_exito">
     >;
   }
 
@@ -311,7 +340,14 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<typeof miGrafoRetry, typeof miGrafoRetry>;
+    type TestAsignabilidad = Expect<
+      typeof miGrafoRetry,
+      WorkflowGraph<
+        EstadoSimulado,
+        typeof serviciosMock,
+        "start" | "paso_inline" | "fin_exito"
+      >
+    >;
   }
 });
 
