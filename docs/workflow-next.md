@@ -79,12 +79,12 @@
 
 ## 4. Próximos Pasos (Paso 6 & Paso 7)
 
-### ⬜ Paso 6: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
+### ✅ Paso 6: Analizador Estático de Topología del Grafo (`src/workflow/analyzer.ts`)
 
-- [ ] **Auditoría de Alcanzabilidad (Reachability):** Algoritmo BFS/DFS que verifique que todos los nodos declarados en el grafo son alcanzables desde el nodo inicial (`start` o primer nodo).
-- [ ] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end` (auditando sus variantes `result`) o punto de suspensión.
-- [ ] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición apunta.
-- [ ] **Suite de Pruebas Atómicas:** `src/workflow/analyzer.test.ts`.
+- [x] **Auditoría de Alcanzabilidad (Reachability):** Algoritmo BFS/DFS que verifique que todos los nodos declarados en el grafo son alcanzables desde el nodo inicial (`start` o primer nodo).
+- [x] **Detección de Callejones sin Salida y Ciclos Infinitos:** Garantizar que todo camino navegable tenga al menos una ruta de salida que desemboque en un nodo de tipo `end` (auditando sus variantes `result`) o punto de suspensión.
+- [x] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición apunta.
+- [x] **Suite de Pruebas Atómicas:** `src/workflow/analyzer.test.ts`.
 
 ### ⬜ Paso 7: Exportadores Visuales e Interoperabilidad (Mermaid & BPMN 2.0) (`src/workflow/exporters/`)
 
