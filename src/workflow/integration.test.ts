@@ -895,3 +895,65 @@ test("Integration E2E - Fase 5.5: Patrón Saga y Rollback Automático de Compens
     "CANCELAR_VUELO",
   ]);
 });
+
+test("Integration E2E - Nodos End: Propagación de la propiedad endResult (Fallback por omisión y explícito)", async () => {
+  interface EstadoEndTest {
+    procesado: boolean;
+  }
+
+  const wfEnd = defineWorkflow<EstadoEndTest, Record<string, never>>();
+
+  const graph = wfEnd.create({
+    id: "flujo_end_result_e2e",
+    nodes: {
+      start: {
+        type: "choose",
+        choices: [
+          {
+            condition: (state) => state.procesado,
+            nextNode: "fin_exito",
+          },
+        ],
+        otherwise: "fin_contingencia",
+      },
+      fin_exito: {
+        type: "end",
+        status: "PROCESADO_OK",
+        // result por omisión -> "success"
+      },
+      fin_contingencia: {
+        type: "end",
+        status: "ERROR_NEGOCIO",
+        result: "error", // result explícito -> "error"
+      },
+    },
+  });
+
+  // 1. Ejecución camino por omisión (result = "success")
+  const resExito = await executeWorkflow({
+    graph,
+    initialState: { procesado: true },
+    services: {},
+  });
+
+  assert.equal(resExito.status, "COMPLETED");
+  if (resExito.status === "COMPLETED") {
+    assert.equal(resExito.endStatus, "PROCESADO_OK");
+    assert.equal(resExito.endResult, "success"); // Fallback automático a "success"
+    assert.equal(resExito.history[1].endResult, "success");
+  }
+
+  // 2. Ejecución camino explícito (result = "error")
+  const resError = await executeWorkflow({
+    graph,
+    initialState: { procesado: false },
+    services: {},
+  });
+
+  assert.equal(resError.status, "COMPLETED");
+  if (resError.status === "COMPLETED") {
+    assert.equal(resError.endStatus, "ERROR_NEGOCIO");
+    assert.equal(resError.endResult, "error"); // Valor explícito conservado
+    assert.equal(resError.history[1].endResult, "error");
+  }
+});
