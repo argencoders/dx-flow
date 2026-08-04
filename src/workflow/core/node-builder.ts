@@ -108,6 +108,7 @@ export type ParallelNodeParams<
  */
 export interface EndNodeParams {
   status: string;
+  result?: "success" | "error" | "compensate" | "terminate";
 }
 
 /**

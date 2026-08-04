@@ -192,6 +192,7 @@ export interface NodeDefinitions<
   end: {
     type: "end";
     status: string;
+    result?: "success" | "error" | "compensate" | "terminate";
   };
 
   sequence: {

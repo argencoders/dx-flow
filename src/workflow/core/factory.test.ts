@@ -392,6 +392,29 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       >
     >;
   }
+
+  function testFlujoConNodoEndResultExplicit() {
+    const miGrafoResult = workflow.create({
+      id: "flujo_end_result",
+      nodes: {
+        start: {
+          type: "action",
+          action: () => {},
+          onSuccess: "fin_error",
+        },
+        fin_error: {
+          type: "end",
+          status: "PAYMENT_FAILED",
+          result: "error",
+        },
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoResult,
+      WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_error">
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
@@ -579,6 +602,20 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
           onSuccess: "fin",
         },
         fin: { type: "end", status: "OK" },
+      },
+    });
+  }
+
+  function testFalloNodoEndResultInvalido() {
+    workflow.create({
+      id: "end_result_invalido",
+      nodes: {
+        fin: {
+          type: "end",
+          status: "OK",
+          // @ts-expect-error - ❌ Valor no permitido en enum de result
+          result: "CATEGORIA_INVENTADA",
+        },
       },
     });
   }
