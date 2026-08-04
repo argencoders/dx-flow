@@ -8,7 +8,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Si la función 'action' retorna una clave de error (string), se busca determinísticamente
  *   su mapeo en el diccionario declarativo 'onError'.
  */
-export const nodeActionHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeActionHandler: NodeHandler<any, any, any> = async ({
   node,
   state,
   context,

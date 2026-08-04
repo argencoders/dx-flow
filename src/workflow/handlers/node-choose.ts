@@ -6,10 +6,10 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Si una condición retorna 'true', redirige inmediatamente a 'choice.nextNode'.
  * - Si ninguna condición retorna 'true', recurre obligatoriamente a la ruta de escape 'otherwise'.
  *
- * 💡 USO DE 'any': 'nodeChooseHandler' se tipa con NodeHandler<any, any, any, any> para actuar
+ * 💡 USO DE 'any': 'nodeChooseHandler' se tipa con NodeHandler<any, any, any> para actuar
  * como handler agnóstico predeterminado registrado en el engine, operando sobre cualquier tipo de Estado y Nodos.
  */
-export const nodeChooseHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeChooseHandler: NodeHandler<any, any, any> = async ({
   node,
   state,
 }): Promise<NodeHandlerResult<any>> => {

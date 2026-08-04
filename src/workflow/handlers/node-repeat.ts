@@ -6,7 +6,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Si 'until(state)' es verdades o el conteo alcanzado indica salida, transiciona a 'onSuccess'.
  * - De lo contrario, transiciona a 'target' para ejecutar una iteración del bucle.
  */
-export const nodeRepeatHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeRepeatHandler: NodeHandler<any, any, any> = async ({
   node,
   state,
 }): Promise<NodeHandlerResult<any>> => {

@@ -13,7 +13,6 @@ interface EstadoTest {
 }
 type NodosTest = "inicio" | "siguiente_nodo";
 interface ServicesTest {}
-interface MutacionesTest {}
 
 test("Workflow - NodeHandlersRegistry: Contiene los handlers nativos ('action', 'choose', 'delay', 'end', 'sequence', 'repeat', 'parallel')", async () => {
   assert.equal(typeof defaultNodeHandlers.action, "function");
@@ -24,31 +23,17 @@ test("Workflow - NodeHandlersRegistry: Contiene los handlers nativos ('action', 
   assert.equal(typeof defaultNodeHandlers.repeat, "function");
   assert.equal(typeof defaultNodeHandlers.parallel, "function");
 
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   // Probamos la ejecución del handler 'action' a través del registro
-  const nodeAction: NodeDefinitions<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  >["action"] = {
+  const nodeAction: NodeDefinitions<EstadoTest, ServicesTest, NodosTest>["action"] = {
     type: "action",
     action: () => {},
     onSuccess: "siguiente_nodo",
   };
 
-  const paramsAction: NodeHandlerParams<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
+  const paramsAction: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest> = {
     node: nodeAction,
     state: { contador: 1 },
     context: contextFull,
@@ -62,35 +47,22 @@ test("Workflow - NodeHandlersRegistry: Contiene los handlers nativos ('action', 
 });
 
 test("Workflow - NodeHandlersRegistry: Permite inyectar y extender handlers personalizados (Plugin Strategy)", async () => {
-  const customWebhookHandler: NodeHandler<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = async ({ node }) => {
-    return {
-      type: "NEXT",
-      target: node.onResponseOk,
+  const customWebhookHandler: NodeHandler<EstadoTest, ServicesTest, NodosTest> =
+    async ({ node }) => {
+      return {
+        type: "NEXT",
+        target: node.onResponseOk,
+      };
     };
-  };
 
-  const registry = createNodeHandlersRegistry<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  >({
+  const registry = createNodeHandlersRegistry<EstadoTest, ServicesTest, NodosTest>({
     webhook: customWebhookHandler,
   });
 
   assert.equal(typeof registry.action, "function");
   assert.equal(typeof registry.webhook, "function");
 
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
 
   const resCustom = await registry.webhook({
     node: { type: "webhook", onResponseOk: "siguiente_nodo" },
@@ -105,32 +77,19 @@ test("Workflow - NodeHandlersRegistry: Permite inyectar y extender handlers pers
 });
 
 test("Workflow - NodeHandlersRegistry: Permite sobreescribir handlers predeterminados", async () => {
-  const customDelayHandler: NodeHandler<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = async () => {
-    return {
-      type: "END",
-      status: "DELAY_OVERRIDDEN",
+  const customDelayHandler: NodeHandler<EstadoTest, ServicesTest, NodosTest> =
+    async () => {
+      return {
+        type: "END",
+        status: "DELAY_OVERRIDDEN",
+      };
     };
-  };
 
-  const registry = createNodeHandlersRegistry<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  >({
+  const registry = createNodeHandlersRegistry<EstadoTest, ServicesTest, NodosTest>({
     delay: customDelayHandler,
   });
 
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
 
   const resOverridden = await registry.delay({
     node: { type: "delay", durationMs: 10, onTimeout: "siguiente_nodo" },

@@ -6,7 +6,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Si 'steps' es un array vacío, transiciona inmediatamente a 'onSuccess'.
  * - Si 'steps' contiene elementos, transiciona al primer nodo de la secuencia ('steps[0]').
  */
-export const nodeSequenceHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
   node,
 }): Promise<NodeHandlerResult<any>> => {
   if (!Array.isArray(node?.steps)) {

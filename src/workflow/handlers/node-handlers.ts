@@ -10,7 +10,7 @@ import { nodeParallelHandler } from "./node-parallel.js";
 /**
  * Registro predeterminado de estrategias de ejecución de nodos del motor (Arquitectura de Plugins sin switch).
  */
-export const defaultNodeHandlers: NodeHandlersMap<any, any, any, any> = {
+export const defaultNodeHandlers: NodeHandlersMap<any, any, any> = {
   action: nodeActionHandler,
   choose: nodeChooseHandler,
   delay: nodeDelayHandler,
@@ -28,14 +28,11 @@ export function createNodeHandlersRegistry<
   TState = any,
   TServices = any,
   TNodesList extends string = any,
-  TMutations = any,
 >(
-  customHandlers?: Partial<
-    NodeHandlersMap<TState, TServices, TNodesList, TMutations>
-  >,
-): NodeHandlersMap<TState, TServices, TNodesList, TMutations> {
+  customHandlers?: Partial<NodeHandlersMap<TState, TServices, TNodesList>>,
+): NodeHandlersMap<TState, TServices, TNodesList> {
   return {
     ...defaultNodeHandlers,
     ...customHandlers,
-  } as NodeHandlersMap<TState, TServices, TNodesList, TMutations>;
+  } as NodeHandlersMap<TState, TServices, TNodesList>;
 }

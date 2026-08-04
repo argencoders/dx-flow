@@ -8,13 +8,12 @@ export interface ActionNodeParams<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
-  TEvents,
+  TEvents = Record<string, any>,
   TActionReturn = void,
 > {
   action: (
     state: DeepReadonly<TState>,
-    context: WorkflowContext<TState, TNodesList, TMutations, TEvents> & {
+    context: WorkflowContext<TState, TNodesList, TEvents> & {
       services: TServices;
     },
   ) => TActionReturn;
@@ -81,16 +80,14 @@ export interface EndNodeParams {
 export interface NodeBuilder<
   TState = any,
   TServices = any,
-  TMutations = any,
   TEvents = Record<string, any>,
 > {
   action: <TActionReturn, TNodesList extends string = string>(
-    params: ActionNodeParams<TState, TServices, TNodesList, TMutations, TEvents, TActionReturn>,
+    params: ActionNodeParams<TState, TServices, TNodesList, TEvents, TActionReturn>,
   ) => { type: "action" } & ActionNodeParams<
     TState,
     TServices,
     TNodesList,
-    TMutations,
     TEvents,
     TActionReturn
   >;
@@ -124,16 +121,15 @@ export interface NodeBuilder<
 export function createNodeBuilder<
   TState,
   TServices,
-  TMutations,
   TEvents = Record<string, any>,
->(): NodeBuilder<TState, TServices, TMutations, TEvents> {
+>(): NodeBuilder<TState, TServices, TEvents> {
   return {
-    action: (params) => ({ type: "action", ...params }),
-    choose: (params) => ({ type: "choose", ...params }),
-    delay: (params) => ({ type: "delay", ...params }),
-    sequence: (params) => ({ type: "sequence", ...params }),
-    repeat: (params) => ({ type: "repeat", ...params }),
-    parallel: (params) => ({ type: "parallel", ...params }),
-    end: (params) => ({ type: "end", ...params }),
-  };
+    action: (params: any) => ({ type: "action", ...params }),
+    choose: (params: any) => ({ type: "choose", ...params }),
+    delay: (params: any) => ({ type: "delay", ...params }),
+    sequence: (params: any) => ({ type: "sequence", ...params }),
+    repeat: (params: any) => ({ type: "repeat", ...params }),
+    parallel: (params: any) => ({ type: "parallel", ...params }),
+    end: (params: any) => ({ type: "end", ...params }),
+  } as NodeBuilder<TState, TServices, TEvents>;
 }

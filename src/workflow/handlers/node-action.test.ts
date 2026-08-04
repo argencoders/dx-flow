@@ -13,28 +13,18 @@ type NodosTest = "inicio" | "siguiente_nodo" | "nodo_reintento" | "nodo_renovar"
 interface ServicesTest {
   procesar: (monto: number) => { ok: boolean; codigo?: string };
 }
-interface MutacionesTest {
-  DEPOSITAR: (state: EstadoTest, monto: number) => void;
-}
 
 type NodeActionDef = NodeDefinitions<
   EstadoTest,
   ServicesTest,
-  NodosTest,
-  MutacionesTest
+  NodosTest
 >["action"];
 
 test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de Errores (string -> onError)", async () => {
-  let mutacionRegistrada = "";
-  let payloadRegistrado = 0;
+  let patchRecibido: Partial<EstadoTest> | null = null;
 
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >((key, payload: any) => { // 💡 'payload: any' inferido por contexto debido a mutaciones heterogéneas
-    mutacionRegistrada = String(key);
-    payloadRegistrado = payload;
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>((patch) => {
+    patchRecibido = patch;
   });
 
   const contextFull = {
@@ -48,18 +38,13 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
   const nodePuro: NodeActionDef = {
     type: "action",
     action: (state: EstadoTest, ctx: typeof contextFull) => {
-      ctx.mutate("DEPOSITAR", 100);
+      ctx.mutate({ saldo: state.saldo + 100 });
       // Retorna void implícito -> va a onSuccess
     },
     onSuccess: "siguiente_nodo",
   };
 
-  const paramsBase: NodeHandlerParams<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
+  const paramsBase: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest> = {
     node: nodePuro,
     state: { saldo: 50 },
     context: contextFull,
@@ -70,8 +55,7 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
   if (resPuro.type === "NEXT") {
     assert.equal(resPuro.target, "siguiente_nodo");
   }
-  assert.equal(mutacionRegistrada, "DEPOSITAR");
-  assert.equal(payloadRegistrado, 100);
+  assert.deepStrictEqual(patchRecibido, { saldo: 150 });
 
   // 2. Caso Acción con Manejo de Errores (onError)
   const nodeConErrores: NodeActionDef = {
@@ -80,7 +64,7 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
       if (state.saldo < 100) {
         return "FONDOS_INSUFICIENTES";
       }
-      ctx.mutate("DEPOSITAR", 50);
+      ctx.mutate({ saldo: state.saldo + 50 });
     },
     onSuccess: "siguiente_nodo",
     onError: {
@@ -106,30 +90,27 @@ test("Workflow - NodeAction: Ejecución Exitosa (void -> onSuccess) y Manejo de 
     state: { saldo: 20 },
   });
   assert.equal(resError.type, "NEXT");
+
   // 2c. Suspensión dinámica mediante ctx.suspend(...)
   const resSuspend = await nodeActionHandler({
     ...paramsBase,
     node: {
       type: "action",
       action: (state: EstadoTest, ctx: typeof contextFull) => {
-        return ctx.suspend("EVENTO_WEBHOOK");
+        return ctx.suspend("pago_confirmado");
       },
       onSuccess: "siguiente_nodo",
     },
   });
   assert.equal(resSuspend.type, "SUSPEND");
   if (resSuspend.type === "SUSPEND") {
-    assert.equal(resSuspend.eventName, "EVENTO_WEBHOOK");
+    assert.equal(resSuspend.eventName, "pago_confirmado");
   }
 });
 
 test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compilacion (@ts-expect-error)", () => {
   function testFalloTipado() {
-    const wf = defineWorkflow<
-      EstadoTest,
-      ServicesTest,
-      MutacionesTest
-    >();
+    const wf = defineWorkflow<EstadoTest, ServicesTest>();
 
     // ❌ ERROR 1: Acción retorna un string de error pero el nodo NO declaró 'onError'
     wf.create({
@@ -178,11 +159,7 @@ test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compila
 });
 
 test("Workflow - NodeAction: Escenarios de Fallo de Runtime", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: { procesar: () => ({ ok: true }) } };
 
   // 1. Sin propiedad onSuccess

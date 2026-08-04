@@ -11,16 +11,7 @@ const serviciosMock = {
   "pasarela.cobrar": async (ctx: any) => ({ success: true, data: {} }),
 };
 
-interface MutacionesSimuladas {
-  INCREMENTAR_INTENTOS: (state: EstadoSimulado, payload: unknown) => any;
-  CAMBIAR_NOMBRE: (state: EstadoSimulado, nuevoNombre: string) => any;
-}
-
-const workflow = defineWorkflow<
-  EstadoSimulado,
-  typeof serviciosMock,
-  MutacionesSimuladas
->();
+const workflow = defineWorkflow<EstadoSimulado, typeof serviciosMock>();
 
 test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo", () => {
   function testFlujoCompletoPerfecto() {
@@ -30,8 +21,8 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
         start: {
           type: "action",
           action: (state, ctx) => {
-            ctx.mutate("INCREMENTAR_INTENTOS");
-            ctx.mutate("CAMBIAR_NOMBRE", "Juan");
+            ctx.mutate({ intentos: state.intentos + 1 });
+            ctx.mutate({ nombre: "Juan" });
           },
           onSuccess: "evaluar_reintento",
         },
@@ -66,7 +57,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
           type: "action",
           action: (state, ctx) => {
             if (!ctx.signalPayload) {
-              return ctx.suspend("INCREMENTAR_INTENTOS");
+              return ctx.suspend("esperar_confirmacion");
             }
           },
           onSuccess: "fin_exito",
@@ -91,7 +82,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
         paso_1: {
           type: "action",
           action: (state, ctx) => {
-            ctx.mutate("INCREMENTAR_INTENTOS");
+            ctx.mutate({ intentos: state.intentos + 1 });
           },
           onSuccess: "paso_2",
         },
@@ -120,11 +111,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
   }
 
   function testNodeBuilderSintaxisLimpia() {
-    const { node, create } = defineWorkflow<
-      EstadoSimulado,
-      typeof serviciosMock,
-      MutacionesSimuladas
-    >();
+    const { node, create } = defineWorkflow<EstadoSimulado, typeof serviciosMock>();
 
     const miGrafoTradicional = create({
       id: "flujo_demostracion",
@@ -132,7 +119,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
         start: {
           type: "action",
           action: (state, ctx) => {
-            ctx.mutate("INCREMENTAR_INTENTOS");
+            ctx.mutate({ intentos: state.intentos + 1 });
           },
           onSuccess: "pausa_espera",
         },
@@ -150,7 +137,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       nodes: {
         start: node.action({
           action: (state, ctx) => {
-            ctx.mutate("INCREMENTAR_INTENTOS");
+            ctx.mutate({ intentos: state.intentos + 1 });
           },
           onSuccess: "pausa_espera",
         }),
@@ -249,8 +236,8 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
         start: {
           type: "action",
           action: (state, ctx) => {
-            // @ts-expect-error - ❌ El error saltará aquí por payload de tipo erróneo
-            ctx.mutate("CAMBIAR_NOMBRE", 12345);
+            // @ts-expect-error - ❌ Tipo incorrecto para el campo 'nombre' (espera string, recibe number)
+            ctx.mutate({ nombre: 12345 });
           },
           onSuccess: "start",
         },
@@ -260,13 +247,13 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
 
   function testFalloMutacionInexistenteEnAction() {
     workflow.create({
-      id: "key_rota",
+      id: "campo_roto",
       nodes: {
         start: {
           type: "action",
           action: (state, ctx) => {
-            // @ts-expect-error - ❌ El error saltará aquí por llave de mutación inexistente
-            ctx.mutate("MUTACION_QUE_NO_EXISTE");
+            // @ts-expect-error - ❌ Campo que no existe en TState
+            ctx.mutate({ campoQueNoExisteEnEstado: true });
           },
           onSuccess: "start",
         },

@@ -11,21 +11,11 @@ interface EstadoTest {
 }
 type NodosTest = "inicio" | "espera" | "siguiente_nodo";
 interface ServicesTest {}
-interface MutacionesTest {}
 
-type NodeDelayDef = NodeDefinitions<
-  EstadoTest,
-  ServicesTest,
-  NodosTest,
-  MutacionesTest
->["delay"];
+type NodeDelayDef = NodeDefinitions<EstadoTest, ServicesTest, NodosTest>["delay"];
 
 test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback por Defecto", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   const nodeDelay: NodeDelayDef = {
@@ -40,12 +30,7 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
     msRecibido = ms;
   };
 
-  const paramsInyectado: NodeHandlerParams<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
+  const paramsInyectado: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest> = {
     node: nodeDelay,
     state: { contador: 0 },
     context: contextFull,
@@ -66,12 +51,7 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
     onTimeout: "siguiente_nodo",
   };
 
-  const paramsDefault: NodeHandlerParams<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
+  const paramsDefault: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest> = {
     node: nodeDelayCorto,
     state: { contador: 0 },
     context: contextFull,
@@ -86,11 +66,7 @@ test("Workflow - NodeDelay: Ejecución Exitosa con delayFn Inyectado y Fallback 
 
 test("Workflow - NodeDelay: Escenarios de Fallo Detectados en Tiempo de Compilacion (@ts-expect-error)", () => {
   function testFalloTipado() {
-    const wf = defineWorkflow<
-      EstadoTest,
-      ServicesTest,
-      MutacionesTest
-    >();
+    const wf = defineWorkflow<EstadoTest, ServicesTest>();
 
     // ❌ ERROR 1: durationMs no es un número
     wf.create({
@@ -135,11 +111,7 @@ test("Workflow - NodeDelay: Escenarios de Fallo Detectados en Tiempo de Compilac
 });
 
 test("Workflow - NodeDelay: Escenarios de Fallo de Runtime", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   // 1. durationMs no es un número

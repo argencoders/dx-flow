@@ -7,7 +7,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * 💡 USO DE 'any': 'nodeEndHandler' se tipa con NodeHandler<any, any, any, any> para actuar
  * como handler agnóstico predeterminado registrado en el engine, operando sobre cualquier tipo de Estado y Nodos.
  */
-export const nodeEndHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeEndHandler: NodeHandler<any, any, any> = async ({
   node,
 }): Promise<NodeHandlerResult<any>> => {
   if (typeof node?.status !== "string") {

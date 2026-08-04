@@ -11,23 +11,11 @@ interface EstadoTest {
 }
 type NodosTest = "nodo_reintento" | "nodo_vip" | "nodo_cancelar" | "nodo_error_fallback";
 interface ServicesTest {}
-interface MutacionesTest {
-  REGISTRAR: (state: EstadoTest) => void;
-}
 
-type NodeChooseDef = NodeDefinitions<
-  EstadoTest,
-  ServicesTest,
-  NodosTest,
-  MutacionesTest
->["choose"];
+type NodeChooseDef = NodeDefinitions<EstadoTest, ServicesTest, NodosTest>["choose"];
 
 test("Workflow - NodeChoose: Evaluación Secuencial (First-Match) y Ruta de Escape Otherwise", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   const nodeChoose: NodeChooseDef = {
@@ -45,12 +33,7 @@ test("Workflow - NodeChoose: Evaluación Secuencial (First-Match) y Ruta de Esca
     otherwise: "nodo_error_fallback", // 💡 RUTA DE ESCAPE OBLIGATORIA
   };
 
-  const paramsBase: NodeHandlerParams<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
+  const paramsBase: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest> = {
     node: nodeChoose,
     state: { intentos: 1, esVip: true },
     context: contextFull,
@@ -73,7 +56,7 @@ test("Workflow - NodeChoose: Evaluación Secuencial (First-Match) y Ruta de Esca
     assert.equal(resReintento.target, "nodo_reintento");
   }
 
-  // 3. Ninguna condición devuelve true (esVip = false, intentos = 5) -> Cae en 'otherwise' ("nodo_error_fallback")
+  // 3. Ninguna condición devuelve true -> Cae en 'otherwise' ("nodo_error_fallback")
   const resFallback = await nodeChooseHandler({
     ...paramsBase,
     state: { intentos: 5, esVip: false },
@@ -109,11 +92,7 @@ test("Workflow - NodeChoose: Escenarios de Fallo Detectados en Tiempo de Compila
 });
 
 test("Workflow - NodeChoose: Manejo de Errores en Runtime", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   // 1. Sin array choices

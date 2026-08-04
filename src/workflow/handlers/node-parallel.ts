@@ -6,7 +6,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Si 'branches' está vacío, transiciona a 'onSuccess'.
  * - Si contiene ramas, coordina la bifurcación iniciando en 'branches[0]' o convergiendo hacia 'onSuccess'.
  */
-export const nodeParallelHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeParallelHandler: NodeHandler<any, any, any> = async ({
   node,
 }): Promise<NodeHandlerResult<any>> => {
   if (!Array.isArray(node?.branches)) {

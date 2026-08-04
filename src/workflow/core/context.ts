@@ -19,13 +19,11 @@ export interface SuspendResult {
  *
  * @template TState - El estado inmutable del negocio.
  * @template TNodesList - Unión de strings con los nombres de todos los nodos del grafo.
- * @template TMutations - El mapa de mutaciones puras registrado para este estado.
  * @template TEvents - El diccionario de eventos/señales externas esperadas y sus payloads.
  */
 export interface WorkflowContext<
   TState,
   TNodesList extends string,
-  TMutations,
   TEvents = Record<string, any>,
 > {
   /**
@@ -39,15 +37,10 @@ export interface WorkflowContext<
   suspend<E extends keyof TEvents & string>(eventName: E): SuspendResult;
 
   /**
-   * Dispara una mutación controlada exigiendo los payloads específicos de TMutations.
+   * Aplica un patch parcial al estado actual del workflow.
+   * El nuevo estado será `{ ...state, ...patch }`.
    */
-  mutate<M extends keyof TMutations>(
-    ...args: TMutations[M] extends (state: any, payload: infer PL) => any
-      ? unknown extends PL
-        ? [mutationKey: M]
-        : [mutationKey: M, payload: PL]
-      : never
-  ): void;
+  mutate(patch: Partial<TState>): void;
 
   /**
    * Payload inyectado cuando el workflow se reanuda tras recibir un evento o señal externa.
@@ -61,11 +54,10 @@ export interface WorkflowContext<
 export function createRuntimeContext<
   TState,
   TNodesList extends string,
-  TMutations,
   TEvents = Record<string, any>,
 >(
-  onMutation: (mutationKey: keyof TMutations, payload: any) => void,
-): WorkflowContext<TState, TNodesList, TMutations, TEvents> {
+  onMutation: (patch: Partial<TState>) => void,
+): WorkflowContext<TState, TNodesList, TEvents> {
   return {
     next: (destination: TNodesList): NavigationResult => ({
       __type_navigation__: "NEXT_NODE",
@@ -75,9 +67,8 @@ export function createRuntimeContext<
       __type_navigation__: "SUSPEND_NODE",
       eventName,
     }),
-    mutate: <M extends keyof TMutations>(...args: any[]): void => {
-      const [mutationKey, payload] = args;
-      onMutation(mutationKey, payload);
+    mutate: (patch: Partial<TState>): void => {
+      onMutation(patch);
     },
   };
 }

@@ -11,21 +11,11 @@ interface EstadoTest {
 }
 type NodosTest = "inicio" | "fin_exito" | "fin_error";
 interface ServicesTest {}
-interface MutacionesTest {}
 
-type NodeEndDef = NodeDefinitions<
-  EstadoTest,
-  ServicesTest,
-  NodosTest,
-  MutacionesTest
->["end"];
+type NodeEndDef = NodeDefinitions<EstadoTest, ServicesTest, NodosTest>["end"];
 
 test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END status)", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   // 1. Caso Éxito
@@ -34,12 +24,7 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
     status: "COMPLETADO",
   };
 
-  const paramsExito: NodeHandlerParams<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
+  const paramsExito: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest> = {
     node: nodeEndExito,
     state: { saldo: 100 },
     context: contextFull,
@@ -69,11 +54,7 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
 
 test("Workflow - NodeEnd: Escenarios de Fallo Detectados en Tiempo de Compilacion (@ts-expect-error)", () => {
   function testFalloTipado() {
-    const wf = defineWorkflow<
-      EstadoTest,
-      ServicesTest,
-      MutacionesTest
-    >();
+    const wf = defineWorkflow<EstadoTest, ServicesTest>();
 
     // ❌ ERROR 1: Falta la propiedad requerida 'status'
     wf.create({
@@ -101,11 +82,7 @@ test("Workflow - NodeEnd: Escenarios de Fallo Detectados en Tiempo de Compilacio
 });
 
 test("Workflow - NodeEnd: Escenarios de Fallo de Runtime", async () => {
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >(() => {});
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
   const contextFull = { ...baseCtx, services: {} };
 
   // 1. Falta la propiedad status

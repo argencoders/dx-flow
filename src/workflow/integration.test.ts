@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { executeWorkflow, resumeWorkflow } from "./core/engine.js";
 import { defineWorkflow, WorkflowGraph } from "./core/factory.js";
-import { defineMutations } from "../mutations/mutations.js";
 
 /**
  * 1. Tipos de Dominio del Negocio (E-Commerce Order Fulfillment)
@@ -30,26 +29,6 @@ interface ServiciosPedido {
   despacharLogistica: (idPedido: string) => void;
 }
 
-interface MutacionesPedido {
-  MARCAR_PENDIENTE_PAGO: (
-    state: EstadoPedido,
-    payload: { monto: number },
-  ) => Partial<EstadoPedido>;
-  APLICAR_DESCUENTO: (
-    state: EstadoPedido,
-    payload: { porcentaje: number },
-  ) => Partial<EstadoPedido>;
-  REGISTRAR_PAGO: (
-    state: EstadoPedido,
-    payload: { txId: string },
-  ) => Partial<EstadoPedido>;
-  COMPLETAR_DESPACHO: (state: EstadoPedido) => Partial<EstadoPedido>;
-  MARCAR_CANCELADO: (
-    state: EstadoPedido,
-    payload: { razon: string; esRechazo?: boolean },
-  ) => Partial<EstadoPedido>;
-}
-
 /**
  * Eventos Externos / Señales esperadas por el Workflow
  */
@@ -62,45 +41,9 @@ interface EventosPedido {
 }
 
 /**
- * 2. Registro de Mutaciones Typed del Negocio
+ * 2. Definición del Workflow Builder con Tipado Estricto de TEvents
  */
-const mutacionesPedido = defineMutations<EstadoPedido>().create({
-  MARCAR_PENDIENTE_PAGO: (state, payload: { monto: number }) => ({
-    monto: payload.monto,
-    estadoPedido: "PENDIENTE_PAGO",
-  }),
-  APLICAR_DESCUENTO: (state, payload: { porcentaje: number }) => {
-    const descuento = (state.monto * payload.porcentaje) / 100;
-    return {
-      descuentoAplicado: descuento,
-      monto: state.monto - descuento,
-    };
-  },
-  REGISTRAR_PAGO: (state, payload: { txId: string }) => ({
-    transaccionPagoId: payload.txId,
-    estadoPedido: "PAGADO",
-  }),
-  COMPLETAR_DESPACHO: () => ({
-    estadoPedido: "DESPACHADO",
-  }),
-  MARCAR_CANCELADO: (
-    state,
-    payload: { razon: string; esRechazo?: boolean },
-  ) => ({
-    estadoPedido: payload.esRechazo ? "RECHAZADO" : "CANCELADO",
-    razonCancelacion: payload.razon,
-  }),
-});
-
-/**
- * 3. Definición del Workflow Builder con Tipado Estricto de TEvents
- */
-const wf = defineWorkflow<
-  EstadoPedido,
-  ServiciosPedido,
-  MutacionesPedido,
-  EventosPedido
->();
+const wf = defineWorkflow<EstadoPedido, ServiciosPedido, EventosPedido>();
 
 type NodosPedidoList =
   | "start"
@@ -114,13 +57,12 @@ type NodosPedidoList =
   | "fin_pago_fallido";
 
 /**
- * 4. Factoría del Grafo del Workflow Multinodo (Plan B: Suspensión Dinámica con ctx.suspend)
+ * 3. Factoría del Grafo del Workflow Multinodo (Plan B: Suspensión Dinámica con ctx.suspend)
  */
 function crearGrafoPedido(): WorkflowGraph<
   EstadoPedido,
   ServiciosPedido,
   NodosPedidoList,
-  MutacionesPedido,
   EventosPedido
 > {
   return wf.create({
@@ -131,10 +73,10 @@ function crearGrafoPedido(): WorkflowGraph<
         action: (state, ctx) => {
           const tieneStock = ctx.services.verificarStock(state.idPedido);
           if (!tieneStock) {
-            ctx.mutate("MARCAR_CANCELADO", { razon: "SIN_STOCK" });
+            ctx.mutate({ estadoPedido: "CANCELADO", razonCancelacion: "SIN_STOCK" });
             return "ERROR_SIN_STOCK";
           }
-          ctx.mutate("MARCAR_PENDIENTE_PAGO", { monto: state.monto });
+          ctx.mutate({ monto: state.monto, estadoPedido: "PENDIENTE_PAGO" });
         },
         onSuccess: "evaluar_descuento_vip",
         onError: {
@@ -154,7 +96,8 @@ function crearGrafoPedido(): WorkflowGraph<
       aplicar_descuento: {
         type: "action",
         action: (state, ctx) => {
-          ctx.mutate("APLICAR_DESCUENTO", { porcentaje: 10 });
+          const descuento = (state.monto * 10) / 100;
+          ctx.mutate({ descuentoAplicado: descuento, monto: state.monto - descuento });
         },
         onSuccess: "procesar_pago",
       },
@@ -171,14 +114,14 @@ function crearGrafoPedido(): WorkflowGraph<
 
           if (!exitoso) {
             const razon = razonFallo ?? "PAGO_RECHAZADO_POR_BANCO";
-            ctx.mutate("MARCAR_CANCELADO", { razon, esRechazo: true });
+            ctx.mutate({ estadoPedido: "RECHAZADO", razonCancelacion: razon });
             ctx.services.notificarCliente(
               `El pago del pedido ${state.idPedido} fue rechazado. Razon: ${razon}`,
             );
             return "ERROR_PAGO_RECHAZADO";
           }
 
-          ctx.mutate("REGISTRAR_PAGO", { txId });
+          ctx.mutate({ transaccionPagoId: txId, estadoPedido: "PAGADO" });
           ctx.services.registrarTransaccion(state.idPedido, txId, state.monto);
         },
         onSuccess: "delay_preparacion_logistica",
@@ -195,7 +138,7 @@ function crearGrafoPedido(): WorkflowGraph<
         type: "action",
         action: (state, ctx) => {
           ctx.services.despacharLogistica(state.idPedido);
-          ctx.mutate("COMPLETAR_DESPACHO");
+          ctx.mutate({ estadoPedido: "DESPACHADO" });
           ctx.services.notificarCliente(
             `Pedido ${state.idPedido} despachado exitosamente.`,
           );
@@ -219,7 +162,7 @@ function crearGrafoPedido(): WorkflowGraph<
 }
 
 /**
- * 5. Suite de Pruebas de Integración End-to-End
+ * 4. Suite de Pruebas de Integración End-to-End
  */
 test("Integration E2E: Flujo Feliz Completo Cliente VIP (Plan B: Suspensión Dinámica ctx.suspend, Delay y Reanudación)", async () => {
   const graph = crearGrafoPedido();
@@ -228,7 +171,7 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Plan B: Suspensión Din
   const notificaciones: string[] = [];
   const despachos: string[] = [];
   let msDelayLogistica = 0;
-  const mutacionesAplicadas: string[] = [];
+  const patchesAplicados: Array<Partial<EstadoPedido>> = [];
 
   const servicios: ServiciosPedido = {
     verificarStock: () => true,
@@ -256,9 +199,8 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Plan B: Suspensión Din
     graph,
     initialState: estadoInicial,
     services: servicios,
-    mutations: mutacionesPedido,
-    onMutation: (key) => {
-      mutacionesAplicadas.push(key);
+    onMutation: (patch) => {
+      patchesAplicados.push(patch);
     },
     delayFn: async (ms) => {
       msDelayLogistica = ms;
@@ -280,19 +222,16 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Plan B: Suspensión Din
     assert.equal(resInicial.history[3].nodeId, "procesar_pago");
   }
 
-  assert.deepEqual(mutacionesAplicadas, [
-    "MARCAR_PENDIENTE_PAGO",
-    "APLICAR_DESCUENTO",
-  ]);
+  // Verificamos que se aplicaron 2 patches (start + aplicar_descuento)
+  assert.equal(patchesAplicados.length, 2);
 
   // FASE 2: Reanudación tras recibir Webhook de Pago Exitoso con signalPayload
   if (resInicial.status === "SUSPENDED") {
     const resFinal = await resumeWorkflow(resInicial, {
       graph,
       services: servicios,
-      mutations: mutacionesPedido,
-      onMutation: (key) => {
-        mutacionesAplicadas.push(key);
+      onMutation: (patch) => {
+        patchesAplicados.push(patch);
       },
       delayFn: async (ms) => {
         msDelayLogistica = ms;
@@ -331,12 +270,8 @@ test("Integration E2E: Flujo Feliz Completo Cliente VIP (Plan B: Suspensión Din
       "Pedido PED-VIP-99 despachado exitosamente.",
     );
 
-    assert.deepEqual(mutacionesAplicadas, [
-      "MARCAR_PENDIENTE_PAGO",
-      "APLICAR_DESCUENTO",
-      "REGISTRAR_PAGO",
-      "COMPLETAR_DESPACHO",
-    ]);
+    // 4 patches en total: start, aplicar_descuento, procesar_pago, despachar_pedido
+    assert.equal(patchesAplicados.length, 4);
   }
 });
 
@@ -363,7 +298,6 @@ test("Integration E2E: Flujo Feliz Cliente Estándar (Sin Descuento VIP)", async
     graph,
     initialState: estadoInicial,
     services: servicios,
-    mutations: mutacionesPedido,
   });
 
   assert.equal(resInicial.status, "SUSPENDED");
@@ -382,7 +316,6 @@ test("Integration E2E: Flujo Feliz Cliente Estándar (Sin Descuento VIP)", async
     const resFinal = await resumeWorkflow(resInicial, {
       graph,
       services: servicios,
-      mutations: mutacionesPedido,
       delayFn: async () => {},
       signalPayload: {
         txId: "TX-STD-123",
@@ -419,7 +352,6 @@ test("Integration E2E: Flujo de Cancelación Temprana por Error Mapeado (Sin Sto
       estadoPedido: "NUEVO",
     },
     services: servicios,
-    mutations: mutacionesPedido,
   });
 
   assert.equal(res.status, "COMPLETED");
@@ -457,7 +389,6 @@ test("Integration E2E: Flujo de Fallo en Reanudación (Webhook con Pago Rechazad
       estadoPedido: "NUEVO",
     },
     services: servicios,
-    mutations: mutacionesPedido,
   });
 
   assert.equal(resInicial.status, "SUSPENDED");
@@ -467,7 +398,6 @@ test("Integration E2E: Flujo de Fallo en Reanudación (Webhook con Pago Rechazad
     const resFinal = await resumeWorkflow(resInicial, {
       graph,
       services: servicios,
-      mutations: mutacionesPedido,
       signalPayload: {
         txId: "TX-REJECTED",
         exitoso: false,
@@ -502,16 +432,7 @@ test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel"
     procesado: boolean;
   }
 
-  const mutacionesCompuestas = defineMutations<EstadoCompuesto>().create({
-    INCREMENTAR: (state) => ({ contador: state.contador + 1 }),
-    MARCAR_PROCESADO: () => ({ procesado: true }),
-  });
-
-  const wfCompuesto = defineWorkflow<
-    EstadoCompuesto,
-    Record<string, never>,
-    typeof mutacionesCompuestas
-  >();
+  const wfCompuesto = defineWorkflow<EstadoCompuesto, Record<string, never>>();
 
   const graph = wfCompuesto.create({
     id: "flujo_compuesto_e2e",
@@ -524,14 +445,14 @@ test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel"
       paso_inicial: {
         type: "action",
         action: (state, ctx) => {
-          ctx.mutate("INCREMENTAR");
+          ctx.mutate({ contador: state.contador + 1 });
         },
         onSuccess: "paso_secundario",
       },
       paso_secundario: {
         type: "action",
         action: (state, ctx) => {
-          ctx.mutate("INCREMENTAR");
+          ctx.mutate({ contador: state.contador + 1 });
         },
         onSuccess: "bucle_iterativo",
       },
@@ -549,7 +470,7 @@ test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel"
       rama_final: {
         type: "action",
         action: (state, ctx) => {
-          ctx.mutate("MARCAR_PROCESADO");
+          ctx.mutate({ procesado: true });
         },
         onSuccess: "fin_exito",
       },
@@ -564,7 +485,6 @@ test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel"
     graph,
     initialState: { contador: 0, procesado: false },
     services: {},
-    mutations: mutacionesCompuestas,
   });
 
   assert.equal(res.status, "COMPLETED");

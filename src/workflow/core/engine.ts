@@ -1,5 +1,4 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
-import { UnwrapMutations } from "../../mutations/mutations.js";
 import { createRuntimeContext } from "./context.js";
 import { WorkflowGraph } from "./factory.js";
 import {
@@ -53,47 +52,37 @@ export interface ExecuteWorkflowOptions<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
 > {
-  graph: WorkflowGraph<TState, TServices, TNodesList, TMutations>;
+  graph: WorkflowGraph<TState, TServices, TNodesList>;
   initialState: TState;
   services: TServices;
-  mutations?: UnwrapMutations<TState, TMutations> | Record<string, (state: any, payload?: any) => any>;
   onMutation?: (
-    key: keyof TMutations & string,
-    payload: any,
+    patch: Partial<TState>,
     newState: DeepReadonly<TState>,
   ) => void;
   startNodeId?: TNodesList;
-  handlers?: NodeHandlersMap<TState, TServices, TNodesList, TMutations>;
+  handlers?: NodeHandlersMap<TState, TServices, TNodesList>;
   delayFn?: (ms: number) => Promise<void>;
   signalPayload?: any;
 }
 
 /**
- * Orquestador principal en runtime con inferencia automática de TState, TServices y TMutations desde el grafo.
+ * Orquestador principal en runtime con inferencia automática de TState y TServices desde el grafo.
  */
 export async function executeWorkflow<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
 >({
   graph,
   initialState,
   services,
-  mutations,
   onMutation,
   startNodeId,
   handlers,
   delayFn,
   signalPayload,
-}: ExecuteWorkflowOptions<
-  TState,
-  TServices,
-  TNodesList,
-  TMutations
->): Promise<WorkflowExecutionResult<TState, TNodesList>> {
+}: ExecuteWorkflowOptions<TState, TServices, TNodesList>): Promise<WorkflowExecutionResult<TState, TNodesList>> {
   let currentState: TState = initialState;
   let currentNodeId: TNodesList | undefined =
     startNodeId ?? ("start" as TNodesList);
@@ -102,8 +91,7 @@ export async function executeWorkflow<
   const activeHandlers = (handlers ?? defaultNodeHandlers) as NodeHandlersMap<
     TState,
     TServices,
-    TNodesList,
-    TMutations
+    TNodesList
   >;
 
   while (currentNodeId) {
@@ -117,7 +105,7 @@ export async function executeWorkflow<
     }
 
     const handler:
-      | NodeHandler<TState, TServices, TNodesList, TMutations>
+      | NodeHandler<TState, TServices, TNodesList>
       | undefined = activeHandlers[node.type];
     if (typeof handler !== "function") {
       throw new Error(
@@ -130,22 +118,12 @@ export async function executeWorkflow<
         ? { ...node, signalPayload }
         : node;
 
-    const runtimeContext = createRuntimeContext<
-      TState,
-      TNodesList,
-      TMutations
-    >((key, payload) => {
-      if (mutations && typeof (mutations as any)[key] === "function") {
-        const patch = (mutations as any)[key](currentState, payload);
+    const runtimeContext = createRuntimeContext<TState, TNodesList>(
+      (patch) => {
         currentState = { ...currentState, ...patch };
-      }
-
-      onMutation?.(
-        key as keyof TMutations & string,
-        payload,
-        currentState as DeepReadonly<TState>,
-      );
-    });
+        onMutation?.(patch, currentState as DeepReadonly<TState>);
+      },
+    );
 
     const contextFull = {
       ...runtimeContext,
@@ -219,21 +197,20 @@ export async function resumeWorkflow<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
 >(
   suspendedResult: Extract<
     WorkflowExecutionResult<TState, TNodesList>,
     { status: "SUSPENDED" }
   >,
   options: Omit<
-    ExecuteWorkflowOptions<TState, TServices, TNodesList, TMutations>,
+    ExecuteWorkflowOptions<TState, TServices, TNodesList>,
     "initialState" | "startNodeId"
   >,
 ): Promise<WorkflowExecutionResult<TState, TNodesList>> {
   const resumeNodeId =
     suspendedResult.targetOnResume ?? suspendedResult.suspendedAtNodeId;
 
-  return executeWorkflow<TState, TServices, TNodesList, TMutations>({
+  return executeWorkflow<TState, TServices, TNodesList>({
     ...options,
     initialState: suspendedResult.finalState as TState,
     startNodeId: resumeNodeId,

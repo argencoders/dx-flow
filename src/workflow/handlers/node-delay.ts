@@ -5,10 +5,10 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * Suspende la ejecución durante el tiempo especificado en 'durationMs'
  * y posteriormente navega estáticamente hacia 'onTimeout'.
  *
- * 💡 USO DE 'any': 'nodeDelayHandler' se tipa con NodeHandler<any, any, any, any> para actuar
+ * 💡 USO DE 'any': 'nodeDelayHandler' se tipa con NodeHandler<any, any, any> para actuar
  * como handler agnóstico predeterminado registrado en el engine, operando sobre cualquier tipo de Estado y Nodos.
  */
-export const nodeDelayHandler: NodeHandler<any, any, any, any> = async ({
+export const nodeDelayHandler: NodeHandler<any, any, any> = async ({
   node,
   delayFn,
 }): Promise<NodeHandlerResult<any>> => {

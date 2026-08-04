@@ -7,7 +7,6 @@ interface EstadoSimulado {
   intentos: number;
 }
 type ServiciosVacios = {};
-interface MutacionesVacinas {}
 
 // ============================================================================
 // 🎯 PRUEBA DE FUEGO DE EXTENSIBILIDAD (Declaration Merging)
@@ -18,7 +17,7 @@ declare module "./validator.js" {
     TState,
     TServices,
     TNodesList extends string,
-    TMutations,
+    TEvents,
   > {
     webhook: {
       type: "webhook";
@@ -29,11 +28,7 @@ declare module "./validator.js" {
 }
 
 // Inicializamos la factoría compartida para el test de validadores
-const workflow = defineWorkflow<
-  EstadoSimulado,
-  ServiciosVacios,
-  MutacionesVacinas
->();
+const workflow = defineWorkflow<EstadoSimulado, ServiciosVacios>();
 
 test("Workflow - Validator: Extensibilidad de fisonomías (Nodo Webhook)", () => {
   function testNodoInyectadoOk() {

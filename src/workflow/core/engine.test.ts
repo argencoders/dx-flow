@@ -4,7 +4,6 @@ import { executeWorkflow, resumeWorkflow } from "./engine.js";
 import { defineWorkflow, WorkflowGraph } from "./factory.js";
 import { createNodeHandlersRegistry } from "../handlers/node-handlers.js";
 import { NodeHandler } from "./node-handler.js";
-import { defineMutations } from "../../mutations/mutations.js";
 
 interface EstadoTest {
   contador: number;
@@ -16,28 +15,16 @@ interface ServicesTest {
   notificar: (mensaje: string) => void;
 }
 
-interface MutacionesTest {
-  INCREMENTAR: (state: EstadoTest) => void;
-  SET_PAGO: (state: EstadoTest, ok: boolean) => void;
-}
-
-const wf = defineWorkflow<EstadoTest, ServicesTest, MutacionesTest>();
-
-const mutacionesTest = defineMutations<EstadoTest>().create({
-  INCREMENTAR: (state) => ({ contador: state.contador + 1 }),
-  SET_PAGO: (state, ok: boolean) => ({ pagoRecibido: ok }),
-});
+const wf = defineWorkflow<EstadoTest, ServicesTest>();
 
 test("Workflow - Engine: Flujo Lineal Feliz (action -> delay -> end)", async () => {
-  let mutacionesEjecutadas: string[] = [];
-
   const graph = wf.create({
     id: "flujo_lineal",
     nodes: {
       start: {
         type: "action",
         action: (state, ctx) => {
-          ctx.mutate("INCREMENTAR");
+          ctx.mutate({ contador: state.contador + 1 });
         },
         onSuccess: "espera",
       },
@@ -54,16 +41,14 @@ test("Workflow - Engine: Flujo Lineal Feliz (action -> delay -> end)", async () 
   });
 
   let msDemora = 0;
-  let logMutaciones: Array<{ key: string; payload: any; newState: EstadoTest }> = [];
+  let patchesRecibidos: Array<{ patch: Partial<EstadoTest>; newState: EstadoTest }> = [];
 
   const res = await executeWorkflow({
     graph,
     initialState: { contador: 0, esVip: false, pagoRecibido: false },
     services: { notificar: () => {} },
-    mutations: mutacionesTest,
-    onMutation: (key, payload, newState) => {
-      logMutaciones.push({ key, payload, newState: newState as EstadoTest });
-      mutacionesEjecutadas.push(key);
+    onMutation: (patch, newState) => {
+      patchesRecibidos.push({ patch, newState: newState as EstadoTest });
     },
     delayFn: async (ms) => {
       msDemora = ms;
@@ -80,9 +65,9 @@ test("Workflow - Engine: Flujo Lineal Feliz (action -> delay -> end)", async () 
     assert.equal(res.history[2].nodeId, "fin");
   }
   assert.equal(msDemora, 1000);
-  assert.deepEqual(mutacionesEjecutadas, ["INCREMENTAR"]);
-  assert.equal(logMutaciones.length, 1);
-  assert.equal(logMutaciones[0].newState.contador, 1);
+  assert.equal(patchesRecibidos.length, 1);
+  assert.deepEqual(patchesRecibidos[0].patch, { contador: 1 });
+  assert.equal(patchesRecibidos[0].newState.contador, 1);
 });
 
 test("Workflow - Engine: Flujo de Decisiones Ramificado (choose) y Manejo de Errores (onError)", async () => {
@@ -153,25 +138,16 @@ test("Workflow - Engine: Flujo de Decisiones Ramificado (choose) y Manejo de Err
 
 test("Workflow - Engine: Ejecución Durable (Suspensión y Reanudación con resumeWorkflow)", async () => {
   // Handler custom que simula suspensión a la espera de un Webhook
-  const suspendWebhookHandler: NodeHandler<
-    EstadoTest,
-    ServicesTest,
-    any,
-    MutacionesTest
-  > = async () => {
-    return {
-      type: "SUSPEND",
-      eventName: "WEBHOOK_CONFIRMACION_PAGO",
-      targetOnResume: "procesar_confirmacion",
+  const suspendWebhookHandler: NodeHandler<EstadoTest, ServicesTest, any> =
+    async () => {
+      return {
+        type: "SUSPEND",
+        eventName: "WEBHOOK_CONFIRMACION_PAGO",
+        targetOnResume: "procesar_confirmacion",
+      };
     };
-  };
 
-  const handlersCustom = createNodeHandlersRegistry<
-    EstadoTest,
-    ServicesTest,
-    any,
-    MutacionesTest
-  >({
+  const handlersCustom = createNodeHandlersRegistry<EstadoTest, ServicesTest, any>({
     wait_webhook: suspendWebhookHandler,
   });
 
@@ -181,7 +157,7 @@ test("Workflow - Engine: Ejecución Durable (Suspensión y Reanudación con resu
       start: {
         type: "action",
         action: (state: EstadoTest, ctx: any) => {
-          ctx.mutate("INCREMENTAR");
+          ctx.mutate({ contador: state.contador + 1 });
         },
         onSuccess: "esperar_pago",
       },
@@ -191,7 +167,7 @@ test("Workflow - Engine: Ejecución Durable (Suspensión y Reanudación con resu
       procesar_confirmacion: {
         type: "action",
         action: (state: EstadoTest, ctx: any) => {
-          ctx.mutate("SET_PAGO", true);
+          ctx.mutate({ pagoRecibido: true });
         },
         onSuccess: "fin_exito",
       },
@@ -200,8 +176,7 @@ test("Workflow - Engine: Ejecución Durable (Suspensión y Reanudación con resu
   } as WorkflowGraph<
     EstadoTest,
     ServicesTest,
-    "start" | "esperar_pago" | "procesar_confirmacion" | "fin_exito",
-    MutacionesTest
+    "start" | "esperar_pago" | "procesar_confirmacion" | "fin_exito"
   >;
 
   // 1. Primera Ejecución: Avanza de 'start' hasta 'esperar_pago' y se SUSPENDE
@@ -209,7 +184,6 @@ test("Workflow - Engine: Ejecución Durable (Suspensión y Reanudación con resu
     graph,
     initialState: { contador: 0, esVip: false, pagoRecibido: false },
     services: { notificar: () => {} },
-    mutations: mutacionesTest,
     handlers: handlersCustom,
   });
 
@@ -227,7 +201,6 @@ test("Workflow - Engine: Ejecución Durable (Suspensión y Reanudación con resu
     const resReanudado = await resumeWorkflow(resInicial, {
       graph,
       services: { notificar: () => {} },
-      mutations: mutacionesTest,
       handlers: handlersCustom,
     });
 

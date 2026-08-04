@@ -16,24 +16,12 @@ type NodosTest = "nodo_a" | "nodo_b";
 interface ServicesTest {
   miServicio: () => string;
 }
-interface MutacionesTest {
-  INCREMENTAR: (state: EstadoTest, p: number) => void;
-}
 
 test("Workflow - NodeHandler: Uso Correcto y Validación Estática de NodeHandlerParams", () => {
   function testParamsCorrectos() {
-    type Params = NodeHandlerParams<
-      EstadoTest,
-      ServicesTest,
-      NodosTest,
-      MutacionesTest
-    >;
+    type Params = NodeHandlerParams<EstadoTest, ServicesTest, NodosTest>;
 
-    const baseCtx = createRuntimeContext<
-      EstadoTest,
-      NodosTest,
-      MutacionesTest
-    >(() => {});
+    const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
 
     const paramsValidos: Params = {
       node: { type: "test" },
@@ -68,18 +56,9 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
   }
 
   function testFalloParams() {
-    type Params = NodeHandlerParams<
-      EstadoTest,
-      ServicesTest,
-      NodosTest,
-      MutacionesTest
-    >;
+    type Params = NodeHandlerParams<EstadoTest, ServicesTest, NodosTest>;
 
-    const baseCtx = createRuntimeContext<
-      EstadoTest,
-      NodosTest,
-      MutacionesTest
-    >(() => {});
+    const baseCtx = createRuntimeContext<EstadoTest, NodosTest>(() => {});
 
     // ❌ ERROR: Infracción de inmutabilidad sobre DeepReadonly<EstadoTest>
     const params: Params = {
@@ -93,13 +72,13 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
     // @ts-expect-error - No se puede mutar una propiedad readonly
     params.state.contador = 20;
 
-    // ❌ ERROR: Mutación inexistente en el contexto
+    // ❌ ERROR: Campo inexistente en TState
     // @ts-expect-error
-    params.context.mutate("MUTACION_INEXISTENTE", 123);
+    params.context.mutate({ campoInexistente: true });
 
-    // ❌ ERROR: Payload con tipo incorrecto para INCREMENTAR (espera number, se pasa string)
+    // ❌ ERROR: Tipo incorrecto para un campo del estado
     // @ts-expect-error
-    params.context.mutate("INCREMENTAR", "texto_invalido");
+    params.context.mutate({ contador: "texto_invalido" });
 
     // ❌ ERROR: Servicio inexistente en el objeto services
     // @ts-expect-error
@@ -107,12 +86,7 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
   }
 
   function testFalloHandler() {
-    type TestHandler = NodeHandler<
-      EstadoTest,
-      ServicesTest,
-      NodosTest,
-      MutacionesTest
-    >;
+    type TestHandler = NodeHandler<EstadoTest, ServicesTest, NodosTest>;
 
     // ❌ ERROR: El handler retorna un target inválido que no pertenece a NodosTest
     // @ts-expect-error
@@ -129,16 +103,10 @@ test("Workflow - NodeHandler: Escenarios de Fallo Detectados por el Compilador (
 });
 
 test("Workflow - NodeHandler: Estructura de NodeHandlersMap y Ejecución Atómica", async () => {
-  let mutacionLlamada = "";
-  let payloadLlamado = 0;
+  let patchRecibido: Partial<EstadoTest> | null = null;
 
-  const baseCtx = createRuntimeContext<
-    EstadoTest,
-    NodosTest,
-    MutacionesTest
-  >((key, payload) => {
-    mutacionLlamada = String(key);
-    payloadLlamado = payload;
+  const baseCtx = createRuntimeContext<EstadoTest, NodosTest>((patch) => {
+    patchRecibido = patch;
   });
 
   const contextFull = {
@@ -146,15 +114,10 @@ test("Workflow - NodeHandler: Estructura de NodeHandlersMap y Ejecución Atómic
     services: { miServicio: () => "OK" },
   };
 
-  const map: NodeHandlersMap<
-    EstadoTest,
-    ServicesTest,
-    NodosTest,
-    MutacionesTest
-  > = {
-    custom: async ({ state, context }: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest, MutacionesTest>) => {
+  const map: NodeHandlersMap<EstadoTest, ServicesTest, NodosTest> = {
+    custom: async ({ state, context }: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest>) => {
       const info = context.services.miServicio();
-      context.mutate("INCREMENTAR", state.contador + (info === "OK" ? 10 : 0));
+      context.mutate({ contador: state.contador + (info === "OK" ? 10 : 0) });
       return { type: "NEXT", target: "nodo_b" };
     },
   };
@@ -169,6 +132,5 @@ test("Workflow - NodeHandler: Estructura de NodeHandlersMap y Ejecución Atómic
   if (res.type === "NEXT") {
     assert.equal(res.target, "nodo_b");
   }
-  assert.equal(mutacionLlamada, "INCREMENTAR");
-  assert.equal(payloadLlamado, 15);
+  assert.deepStrictEqual(patchRecibido, { contador: 15 });
 });

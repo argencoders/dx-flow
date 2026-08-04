@@ -9,21 +9,13 @@ import assert from "node:assert";
 
 interface EstadoSimulado {
   clicks: number;
+  nombre: string;
 }
 type NodosSimulados = "start" | "pausa" | "fin";
 
-interface MutacionesSimuladas {
-  INCREMENTAR: (state: EstadoSimulado, payload: unknown) => any;
-  SET_VALOR: (state: EstadoSimulado, v: number) => any;
-}
-
 test("Workflow - Context: Validación estática de firmas (.next y .mutate)", () => {
   function testDiseno() {
-    const context = {} as WorkflowContext<
-      EstadoSimulado,
-      NodosSimulados,
-      MutacionesSimuladas
-    >;
+    const context = {} as WorkflowContext<EstadoSimulado, NodosSimulados>;
 
     // ✅ REQUISITO: Destino válido compila limpio
     const ok = context.next("pausa");
@@ -33,38 +25,40 @@ test("Workflow - Context: Validación estática de firmas (.next y .mutate)", ()
     // @ts-expect-error
     context.next("NODO_FANTASMA");
 
-    // ✅ REQUISITO: Permite mutaciones sin payload
-    context.mutate("INCREMENTAR");
+    // ✅ REQUISITO: Acepta un patch parcial del estado
+    context.mutate({ clicks: 5 });
 
-    // ✅ REQUISITO: Exige el tipo de payload correcto si está declarado
-    context.mutate("SET_VALOR", 42);
+    // ✅ REQUISITO: Acepta múltiples campos del estado en un solo patch
+    context.mutate({ clicks: 1, nombre: "Maria" });
 
-    // ❌ REQUISITO CUMPLIDO: Bloquea payloads de tipos erróneos
+    // ❌ REQUISITO CUMPLIDO: Bloquea campos que no existen en TState
     // @ts-expect-error
-    context.mutate("SET_VALOR", "un_string_ilegal");
+    context.mutate({ campoInexistente: true });
+
+    // ❌ REQUISITO CUMPLIDO: Bloquea tipos incorrectos para campos del estado
+    // @ts-expect-error
+    context.mutate({ clicks: "no_es_numero" });
   }
 });
 
 test("Workflow - Context: Ejecución en Runtime de createRuntimeContext", () => {
-  let mutacionGatillada: any = null;
-  let payloadGatillado: any = null;
+  let patchRecibido: Partial<EstadoSimulado> | null = null;
 
-  // Inicializamos el contexto real usando el constructor corregido
-  const context = createRuntimeContext<
-    EstadoSimulado,
-    NodosSimulados,
-    MutacionesSimuladas
-  >((key, pl) => {
-    mutacionGatillada = key;
-    payloadGatillado = pl;
-  });
+  const context = createRuntimeContext<EstadoSimulado, NodosSimulados>(
+    (patch) => {
+      patchRecibido = patch;
+    },
+  );
 
   // Ejecutamos la navegación física
   const nav = context.next("fin");
   assert.strictEqual(nav.target, "fin");
 
-  // Ejecutamos la mutación física
-  context.mutate("SET_VALOR", 100);
-  assert.strictEqual(mutacionGatillada, "SET_VALOR");
-  assert.strictEqual(payloadGatillado, 100);
+  // Ejecutamos la mutación física con un patch parcial
+  context.mutate({ clicks: 100 });
+  assert.deepStrictEqual(patchRecibido, { clicks: 100 });
+
+  // Ejecutamos con múltiples campos
+  context.mutate({ clicks: 0, nombre: "Juan" });
+  assert.deepStrictEqual(patchRecibido, { clicks: 0, nombre: "Juan" });
 });

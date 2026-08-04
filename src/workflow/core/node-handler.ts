@@ -16,11 +16,10 @@ export interface NodeHandlerParams<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
 > {
   node: any;
   state: DeepReadonly<TState>;
-  context: WorkflowContext<TState, TNodesList, TMutations> & {
+  context: WorkflowContext<TState, TNodesList> & {
     services: TServices;
   };
   delayFn?: (ms: number) => Promise<void>;
@@ -33,9 +32,8 @@ export type NodeHandler<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
 > = (
-  params: NodeHandlerParams<TState, TServices, TNodesList, TMutations>,
+  params: NodeHandlerParams<TState, TServices, TNodesList>,
 ) => Promise<NodeHandlerResult<TNodesList>> | NodeHandlerResult<TNodesList>;
 
 /**
@@ -45,5 +43,4 @@ export type NodeHandlersMap<
   TState,
   TServices,
   TNodesList extends string,
-  TMutations,
-> = Record<string, NodeHandler<TState, TServices, TNodesList, TMutations>>;
+> = Record<string, NodeHandler<TState, TServices, TNodesList>>;
