@@ -1,6 +1,7 @@
 import { test } from "node:test";
+import assert from "node:assert/strict";
 import { Expect } from "../../core/types-testing.js";
-import { defineWorkflow, WorkflowGraph } from "./factory.js";
+import { defineWorkflow, WorkflowGraph, resolveStartNodeId } from "./factory.js";
 
 interface EstadoSimulado {
   intentos: number;
@@ -684,3 +685,28 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
     });
   }
 });
+
+test("Workflow - Factory: Inferencia del nodo inicial (resolveStartNodeId)", () => {
+  // 1. Objeto de nodos vacío o indefinido
+  assert.equal(resolveStartNodeId({}), undefined);
+  assert.equal(resolveStartNodeId(undefined as any), undefined);
+
+  // 2. Prioridad Explícita: Retorna el explicitStartNodeId especificado si existe
+  const nodesMultinodo = {
+    primer_nodo: { type: "action" },
+    start: { type: "action" },
+    nodo_custom: { type: "end" },
+  };
+  assert.equal(resolveStartNodeId(nodesMultinodo, "nodo_custom"), "nodo_custom");
+
+  // 3. Prioridad por Clave 'start': Selecciona 'start' si no hay un explicitStartNodeId
+  assert.equal(resolveStartNodeId(nodesMultinodo), "start");
+
+  // 4. Fallback por Orden de Inserción: Selecciona la primera llave declarada si no existe 'start' ni explicitStartNodeId
+  const nodesSinStartKey = {
+    primer_paso: { type: "action" },
+    segundo_paso: { type: "end" },
+  };
+  assert.equal(resolveStartNodeId(nodesSinStartKey), "primer_paso");
+});
+
