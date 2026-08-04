@@ -753,3 +753,53 @@ test("Integration E2E - Fase 5.4: Flujo con Reintentos Automáticos (RetryPolicy
     assert.deepStrictEqual(delaysRegistrados, [100, 200, 50]);
   }
 });
+
+test("Integration E2E - Fase 5.4: Fallo de Reintentos tras Agotar maxAttempts (Navegación a onError)", async () => {
+  interface EstadoExhaustion {
+    intentos: number;
+  }
+
+  const wfExhaust = defineWorkflow<EstadoExhaustion, Record<string, never>>();
+
+  const graph = wfExhaust.create({
+    id: "flujo_retry_exhaustion_e2e",
+    nodes: {
+      start: {
+        type: "action",
+        action: (state, ctx): "ERROR_PERSISTENTE" => {
+          ctx.mutate({ intentos: state.intentos + 1 });
+          return "ERROR_PERSISTENTE";
+        },
+        retry: {
+          maxAttempts: 2,
+          initialIntervalMs: 50,
+          retryableErrors: ["ERROR_PERSISTENTE"],
+        },
+        onSuccess: "fin_exito",
+        onError: {
+          ERROR_PERSISTENTE: "fin_error",
+        },
+      },
+      fin_exito: { type: "end", status: "OK" },
+      fin_error: { type: "end", status: "RETRY_EXHAUSTED" },
+    },
+  });
+
+  const delays: number[] = [];
+
+  const res = await executeWorkflow({
+    graph,
+    initialState: { intentos: 0 },
+    services: {},
+    delayFn: async (ms) => {
+      delays.push(ms);
+    },
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "RETRY_EXHAUSTED");
+    assert.equal(res.finalState.intentos, 2);
+    assert.deepStrictEqual(delays, [50]);
+  }
+});
