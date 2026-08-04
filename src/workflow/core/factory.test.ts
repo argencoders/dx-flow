@@ -154,6 +154,66 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       typeof miGrafoTradicional
     >;
   }
+
+  function testFlujoSequencePasosInline() {
+    const miGrafoSequenceInline = workflow.create({
+      id: "flujo_sequence_inline",
+      nodes: {
+        start: {
+          type: "sequence",
+          steps: [
+            // 1. Shorthand action callback
+            (state, ctx) => {
+              ctx.mutate({ intentos: state.intentos + 1 });
+            },
+            // 2. Action inline con onError opcional
+            {
+              type: "action",
+              action: (state, ctx) => {
+                if (state.intentos > 5) return "LIMITE_EXCEDIDO";
+                ctx.mutate({ nombre: "Carlos" });
+              },
+              onError: {
+                LIMITE_EXCEDIDO: "fin_fallo",
+              },
+            },
+            // 3. Delay inline
+            {
+              type: "delay",
+              durationMs: 500,
+            },
+            // 4. Choose inline sin otherwise (fallthrough implícito)
+            {
+              type: "choose",
+              choices: [
+                {
+                  condition: (state) => state.esVip,
+                  nextNode: "fin_exito",
+                },
+              ],
+            },
+            // 5. String key tradicional
+            "nodo_registrado",
+          ],
+          onSuccess: "fin_exito",
+        },
+        nodo_registrado: {
+          type: "action",
+          action: (state, ctx) => {
+            ctx.mutate({ intentos: 0 });
+          },
+          onSuccess: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+        fin_fallo: { type: "end", status: "FAILED" },
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoSequenceInline,
+      typeof miGrafoSequenceInline
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {

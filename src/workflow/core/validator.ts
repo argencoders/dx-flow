@@ -1,6 +1,53 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
 
+export interface InlineActionStep<
+  TState,
+  TServices,
+  TNodesList extends string,
+  TEvents = Record<string, any>,
+> {
+  type: "action";
+  action: (
+    state: DeepReadonly<TState>,
+    context: WorkflowContext<TState, TNodesList, TEvents> & {
+      services: TServices;
+    },
+  ) => Promise<string | SuspendResult | void> | string | SuspendResult | void;
+  onError?: Record<string, TNodesList>;
+}
+
+export interface InlineDelayStep {
+  type: "delay";
+  durationMs: number;
+}
+
+export interface InlineChooseStep<TState, TNodesList extends string> {
+  type: "choose";
+  choices: Array<{
+    condition: (state: DeepReadonly<TState>) => boolean;
+    nextNode: TNodesList;
+  }>;
+  otherwise?: TNodesList;
+}
+
+export type InlineStep<
+  TState,
+  TServices,
+  TNodesList extends string,
+  TEvents = Record<string, any>,
+> =
+  | TNodesList
+  | InlineActionStep<TState, TServices, TNodesList, TEvents>
+  | InlineDelayStep
+  | InlineChooseStep<TState, TNodesList>
+  | ((
+      state: DeepReadonly<TState>,
+      context: WorkflowContext<TState, TNodesList, TEvents> & {
+        services: TServices;
+      },
+    ) => Promise<string | SuspendResult | void> | string | SuspendResult | void);
+
 /**
  * Registro extensible de tipos de nodos del framework (strictly typed).
  */
@@ -44,7 +91,7 @@ export interface NodeDefinitions<
 
   sequence: {
     type: "sequence";
-    steps: Array<TNodesList>;
+    steps: Array<InlineStep<TState, TServices, TNodesList, TEvents>>;
     onSuccess: TNodesList;
   };
 

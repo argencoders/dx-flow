@@ -1,5 +1,6 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
+import { InlineStep } from "./validator.js";
 
 /**
  * Parámetros para construir un nodo 'action'.
@@ -43,8 +44,13 @@ export interface DelayNodeParams<TNodesList extends string> {
 /**
  * Parámetros para construir un nodo 'sequence'.
  */
-export interface SequenceNodeParams<TNodesList extends string> {
-  steps: Array<TNodesList>;
+export interface SequenceNodeParams<
+  TState = any,
+  TServices = any,
+  TNodesList extends string = string,
+  TEvents = Record<string, any>,
+> {
+  steps: Array<InlineStep<TState, TServices, TNodesList, TEvents>>;
   onSuccess: TNodesList;
 }
 
@@ -101,8 +107,13 @@ export interface NodeBuilder<
   ) => { type: "delay" } & DelayNodeParams<TNodesList>;
 
   sequence: <TNodesList extends string = string>(
-    params: SequenceNodeParams<TNodesList>,
-  ) => { type: "sequence" } & SequenceNodeParams<TNodesList>;
+    params: SequenceNodeParams<TState, TServices, TNodesList, TEvents>,
+  ) => { type: "sequence" } & SequenceNodeParams<
+    TState,
+    TServices,
+    TNodesList,
+    TEvents
+  >;
 
   repeat: <TNodesList extends string = string>(
     params: RepeatNodeParams<TState, TNodesList>,

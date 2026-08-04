@@ -71,3 +71,109 @@ test("NodeSequence: Escenarios de Fallo por Parámetros Inválidos", async () =>
     },
   );
 });
+
+test("NodeSequence: Ejecución de pasos inline (shorthand, delay inline, choose inline con fallthrough)", async () => {
+  let contadorMutado = 0;
+  let delayEjecutadoMs = 0;
+
+  const mockContext = {
+    mutate: (patch: any) => {
+      if (patch.contador !== undefined) contadorMutado = patch.contador;
+    },
+  };
+
+  const node = {
+    type: "sequence",
+    steps: [
+      (state: any, ctx: any) => {
+        ctx.mutate({ contador: state.contador + 1 });
+      },
+      {
+        type: "delay",
+        durationMs: 250,
+      },
+      {
+        type: "choose",
+        choices: [
+          {
+            condition: (state: any) => state.esVip,
+            nextNode: "descuento_vip",
+          },
+        ],
+      },
+    ],
+    onSuccess: "fin_secuencia",
+  };
+
+  const result = await nodeSequenceHandler({
+    node,
+    state: { contador: 10, esVip: false },
+    context: mockContext as any,
+    delayFn: async (ms) => {
+      delayEjecutadoMs = ms;
+    },
+  });
+
+  assert.equal(contadorMutado, 11);
+  assert.equal(delayEjecutadoMs, 250);
+  assert.deepStrictEqual(result, {
+    type: "NEXT",
+    target: "fin_secuencia",
+  });
+});
+
+test("NodeSequence: Paso action inline con onError redirige a nodo de error", async () => {
+  const node = {
+    type: "sequence",
+    steps: [
+      {
+        type: "action",
+        action: () => "ERROR_VALIDACION",
+        onError: {
+          ERROR_VALIDACION: "nodo_error_handler",
+        },
+      },
+    ],
+    onSuccess: "fin_secuencia",
+  };
+
+  const result = await nodeSequenceHandler({
+    node,
+    state: {},
+    context: {} as any,
+  });
+
+  assert.deepStrictEqual(result, {
+    type: "NEXT",
+    target: "nodo_error_handler",
+  });
+});
+
+test("NodeSequence: Paso choose inline con coincidencia desvía a nextNode", async () => {
+  const node = {
+    type: "sequence",
+    steps: [
+      {
+        type: "choose",
+        choices: [
+          {
+            condition: (state: any) => state.esVip,
+            nextNode: "ruta_vip",
+          },
+        ],
+      },
+    ],
+    onSuccess: "fin_secuencia",
+  };
+
+  const result = await nodeSequenceHandler({
+    node,
+    state: { esVip: true },
+    context: {} as any,
+  });
+
+  assert.deepStrictEqual(result, {
+    type: "NEXT",
+    target: "ruta_vip",
+  });
+});
