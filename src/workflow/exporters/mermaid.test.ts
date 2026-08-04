@@ -86,7 +86,7 @@ test("Workflow - Exporters Mermaid: Ramificaciones choose, onError, delay y esti
   assert.ok(code.includes("paso_1 -->|onError: INVALID_DATA| fin_error"));
   assert.ok(code.includes("evaluar -->|choice 1| esperar"));
   assert.ok(code.includes("evaluar -->|otherwise| fin_ok"));
-  assert.ok(code.includes("esperar -->|1000ms| fin_ok"));
+  assert.ok(code.includes("esperar -->|1s| fin_ok"));
 
   assert.ok(code.includes("class fin_ok success;"));
   assert.ok(code.includes("class fin_error error;"));

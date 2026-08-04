@@ -103,7 +103,7 @@ test("Workflow - Exporters IR: Extracción de ramificaciones, errores y temporiz
   assert.deepEqual(edgesFromEsperar[0], {
     from: "esperar",
     to: "fin_ok",
-    label: "5000ms",
+    label: "5s",
   });
 });
 

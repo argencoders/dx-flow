@@ -2,6 +2,14 @@ import { WorkflowGraph, resolveStartNodeId } from "../core/factory.js";
 
 export type IRShape = "box" | "rhombus" | "stadium" | "subgraph";
 
+export function formatDurationMs(ms?: number): string {
+  if (ms === undefined || ms === null || isNaN(ms)) return "onTimeout";
+  if (ms % 3600000 === 0) return `${ms / 3600000}h`;
+  if (ms % 60000 === 0) return `${ms / 60000}m`;
+  if (ms % 1000 === 0) return `${ms / 1000}s`;
+  return `${ms}ms`;
+}
+
 export interface IRNode {
   id: string;
   label: string;
@@ -92,7 +100,7 @@ export function extractWorkflowIR(
         irEdges.push({
           from: nodeId,
           to: rawNode.onTimeout,
-          label: rawNode.durationMs ? `${rawNode.durationMs}ms` : "onTimeout",
+          label: formatDurationMs(rawNode.durationMs),
         });
       }
     } else if (nodeType === "repeat") {
