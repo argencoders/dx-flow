@@ -5,6 +5,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * - Valida la estructura declarativa de 'steps' y 'onSuccess'.
  * - Si 'steps' es un array vacío, transiciona inmediatamente a 'onSuccess'.
  * - Soporta exclusivamente pasos inline puros (funciones shorthand, objetos de tipo action, delay, choose).
+ * - Mantiene y propaga el estado actualizado en tiempo real entre pasos inline de la secuencia.
  * - Para acciones inline, onSuccess es implícito (continúa al siguiente paso).
  * - Para choose inline sin otherwise, si no hay coincidencia realiza fallthrough al siguiente paso.
  */
@@ -33,6 +34,15 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
     };
   }
 
+  let currentState = state;
+  const stepContext = {
+    ...context,
+    mutate: (patch: any) => {
+      currentState = { ...currentState, ...patch };
+      context.mutate(patch);
+    },
+  };
+
   for (let i = 0; i < node.steps.length; i++) {
     const step = node.steps[i];
 
@@ -43,7 +53,7 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
     }
 
     if (typeof step === "function") {
-      const result = await step(state, context);
+      const result = await step(currentState, stepContext);
       if (
         typeof result === "object" &&
         result?.__type_navigation__ === "SUSPEND_NODE"
@@ -64,7 +74,7 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
 
     if (typeof step === "object" && step !== null) {
       if (step.type === "action" || typeof step.action === "function") {
-        const result = await step.action(state, context);
+        const result = await step.action(currentState, stepContext);
         if (
           typeof result === "object" &&
           result?.__type_navigation__ === "SUSPEND_NODE"
@@ -111,7 +121,7 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
             `❌ ERROR: El paso inline 'choose' debe especificar la lista 'choices'.`,
           );
         }
-        const matched = step.choices.find((c: any) => c.condition(state));
+        const matched = step.choices.find((c: any) => c.condition(currentState));
         if (matched) {
           return {
             type: "NEXT",

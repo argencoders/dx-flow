@@ -439,26 +439,19 @@ test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel"
     nodes: {
       start: {
         type: "sequence",
-        steps: ["paso_inicial", "paso_secundario"],
-        onSuccess: "bucle_iterativo",
-      },
-      paso_inicial: {
-        type: "action",
-        action: (state, ctx) => {
-          ctx.mutate({ contador: state.contador + 1 });
-        },
-        onSuccess: "paso_secundario",
-      },
-      paso_secundario: {
-        type: "action",
-        action: (state, ctx) => {
-          ctx.mutate({ contador: state.contador + 1 });
-        },
+        steps: [
+          (state, ctx) => {
+            ctx.mutate({ contador: state.contador + 1 });
+          },
+          (state, ctx) => {
+            ctx.mutate({ contador: state.contador + 1 });
+          },
+        ],
         onSuccess: "bucle_iterativo",
       },
       bucle_iterativo: {
         type: "repeat",
-        target: "paso_inicial",
+        target: "start",
         until: (state) => state.contador >= 5,
         onSuccess: "seccion_paralela",
       },

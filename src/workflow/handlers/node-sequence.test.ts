@@ -2,23 +2,21 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nodeSequenceHandler } from "./node-sequence.js";
 
-test("NodeSequence: Redirección al primer paso cuando steps no está vacío", async () => {
-  const node = {
-    type: "sequence",
-    steps: ["paso_a", "paso_b"],
-    onSuccess: "nodo_final",
-  };
-
-  const result = await nodeSequenceHandler({
-    node,
-    state: {},
-    context: {} as any,
-  });
-
-  assert.deepStrictEqual(result, {
-    type: "NEXT",
-    target: "paso_a",
-  });
+test("NodeSequence: Rechaza string keys y exige pasos inline puros", async () => {
+  await assert.rejects(
+    async () => {
+      await nodeSequenceHandler({
+        node: { type: "sequence", steps: ["paso_a"], onSuccess: "fin" },
+        state: {},
+        context: {} as any,
+      });
+    },
+    {
+      name: "Error",
+      message:
+        "❌ ERROR: El paso 'paso_a' en 'sequence' es un string key. Los pasos de 'sequence' deben ser nodos inline puros.",
+    },
+  );
 });
 
 test("NodeSequence: Transición a onSuccess cuando steps está vacío", async () => {
