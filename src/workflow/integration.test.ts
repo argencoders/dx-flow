@@ -487,3 +487,136 @@ test("Integration E2E - Fase 5: Flujo Compuesto con sequence, repeat y parallel"
     assert.equal(res.finalState.procesado, true);
   }
 });
+
+test("Integration E2E - Fase 5.2: Flujo Compuesto con repeat conteniendo steps inline puros", async () => {
+  interface EstadoInlineRepeat {
+    acumulado: number;
+    ciclos: number;
+  }
+
+  const wfInline = defineWorkflow<EstadoInlineRepeat, Record<string, never>>();
+
+  const graph = wfInline.create({
+    id: "flujo_repeat_inline_e2e",
+    nodes: {
+      start: {
+        type: "repeat",
+        steps: [
+          (state, ctx) => {
+            ctx.mutate({ acumulado: state.acumulado + 10 });
+          },
+          {
+            type: "delay",
+            durationMs: 50,
+          },
+          (state, ctx) => {
+            ctx.mutate({ ciclos: state.ciclos + 1 });
+          },
+        ],
+        until: (state) => state.ciclos >= 3,
+        count: 5,
+        onSuccess: "fin_exito",
+      },
+      fin_exito: {
+        type: "end",
+        status: "REPEAT_INLINE_OK",
+      },
+    },
+  });
+
+  const res = await executeWorkflow({
+    graph,
+    initialState: { acumulado: 0, ciclos: 0 },
+    services: {},
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "REPEAT_INLINE_OK");
+    assert.equal(res.finalState.ciclos, 3);
+    assert.equal(res.finalState.acumulado, 30);
+  }
+});
+
+test("Integration E2E - Fase 5: Suspensión y Reanudación Durable dentro de un paso inline en repeat", async () => {
+  interface EstadoSuspensionRepeat {
+    intentos: number;
+    aprobado: boolean;
+  }
+
+  interface EventosSuspension {
+    APROBACION_HUMANA: {
+      aprobado: boolean;
+    };
+  }
+
+  const wfSuspend = defineWorkflow<
+    EstadoSuspensionRepeat,
+    Record<string, never>,
+    EventosSuspension
+  >();
+
+  const graph = wfSuspend.create({
+    id: "flujo_repeat_inline_suspend",
+    nodes: {
+      start: {
+        type: "repeat",
+        steps: [
+          // Paso 1: Incrementar contador de intentos
+          (state, ctx) => {
+            ctx.mutate({ intentos: state.intentos + 1 });
+          },
+          // Paso 2: Acción inline que solicita aprobación y se suspende dinámicamente
+          {
+            type: "action",
+            action: (state, ctx) => {
+              if (!ctx.signalPayload) {
+                return ctx.suspend("APROBACION_HUMANA");
+              }
+              const { aprobado } = ctx.signalPayload;
+              if (aprobado) {
+                ctx.mutate({ aprobado: true });
+              }
+            },
+          },
+        ],
+        until: (state) => state.aprobado || state.intentos >= 3,
+        onSuccess: "fin",
+      },
+      fin: {
+        type: "end",
+        status: "FIN_SUSPENSION_OK",
+      },
+    },
+  });
+
+  // 1. Ejecución inicial: Ejecuta paso 1 (intentos: 1) y suspende en paso 2 esperando APROBACION_HUMANA
+  const resInicial = await executeWorkflow({
+    graph,
+    initialState: { intentos: 0, aprobado: false },
+    services: {},
+  });
+
+  assert.equal(resInicial.status, "SUSPENDED");
+  if (resInicial.status === "SUSPENDED") {
+    assert.equal(resInicial.eventName, "APROBACION_HUMANA");
+    assert.equal(resInicial.finalState.intentos, 1);
+    assert.equal(resInicial.finalState.aprobado, false);
+  }
+
+  // 2. Reanudación con aprobación concedida: completa el paso 2, mutate aprobado: true, until evalúa true y finaliza
+  if (resInicial.status === "SUSPENDED") {
+    const resFinal = await resumeWorkflow(resInicial, {
+      graph,
+      services: {},
+      signalPayload: { aprobado: true },
+    });
+
+    assert.equal(resFinal.status, "COMPLETED");
+    if (resFinal.status === "COMPLETED") {
+      assert.equal(resFinal.endStatus, "FIN_SUSPENSION_OK");
+      assert.equal(resFinal.finalState.intentos, 2);
+      assert.equal(resFinal.finalState.aprobado, true);
+    }
+  }
+});
