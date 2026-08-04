@@ -132,3 +132,54 @@ test("Workflow - Exporters Mermaid: Fisonomías avanzadas (repeat, parallel, sub
   assert.ok(code.includes("class fin_cancelado compensate;"));
   assert.ok(code.includes("class fin_matar terminate;"));
 });
+
+test("Workflow - Exporters Mermaid: Generación de vista previa visual (Snapshot Markdown)", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+
+  const graphRamificado = wf.create({
+    id: "wf_demo_ramificado",
+    nodes: {
+      inicio: {
+        type: "action",
+        action: () => {},
+        onSuccess: "evaluar_cliente",
+        onError: { ERROR_PAGO: "cancelado" },
+      },
+      evaluar_cliente: {
+        type: "choose",
+        choices: [{ condition: (s) => s.counter > 0, nextNode: "espera_aprobacion" }],
+        otherwise: "completado",
+      },
+      espera_aprobacion: {
+        type: "delay",
+        durationMs: 3600000,
+        onTimeout: "completado",
+      },
+      completado: { type: "end", status: "COMPLETED", result: "success" },
+      cancelado: { type: "end", status: "PAYMENT_FAILED", result: "error" },
+    },
+  });
+
+  const mmdRamificado = exportToMermaid(graphRamificado);
+
+  const snapshotDir = path.join(process.cwd(), "src", "workflow", "exporters", "__snapshots__");
+  if (!fs.existsSync(snapshotDir)) {
+    fs.mkdirSync(snapshotDir, { recursive: true });
+  }
+
+  const markdownContent = `# Vista Previa de Diagramas Mermaid Generados
+
+Este archivo se genera automáticamente durante la ejecución de \`npm run test\` para permitir la vista previa visual dentro del editor.
+
+## Diagrama: Flujo Ramificado y Temporizado
+
+\`\`\`mermaid
+${mmdRamificado}
+\`\`\`
+`;
+
+  fs.writeFileSync(path.join(snapshotDir, "mermaid-preview.md"), markdownContent, "utf-8");
+  assert.ok(fs.existsSync(path.join(snapshotDir, "mermaid-preview.md")));
+});
+

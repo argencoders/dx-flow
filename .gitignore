@@ -1,2 +1,3 @@
 node_modules
 dist
+src/workflow/exporters/__snapshots__/
