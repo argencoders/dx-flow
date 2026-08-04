@@ -50,12 +50,18 @@ export const nodeParallelHandler: NodeHandler<any, any, any> = async ({
     async (branch: any, index: number) => {
       // Rama por clave de nodo registrada (cadena)
       if (typeof branch === "string") {
-        return {
-          type: "NEXT" as const,
+        const nextResult: {
+          type: "NEXT";
+          target: string;
+          index: number;
+          branchPatches: Record<string, any>;
+        } = {
+          type: "NEXT",
           target: branch,
           index,
           branchPatches: {},
         };
+        return nextResult;
       }
 
       // Pasos Inline (función shorthand, objeto paso, o secuencia { type: "sequence", steps: [...] })

@@ -136,7 +136,7 @@ test("Workflow - NodeAction: Escenarios de Fallo Detectados en Tiempo de Compila
           action: (): "TARJETA_EXPIRADA" | void => "TARJETA_EXPIRADA",
           onSuccess: "siguiente_nodo",
           onError: {
-            FONDOS_INSUFICIENTES: "nodo_reintento" as const,
+            FONDOS_INSUFICIENTES: "nodo_reintento",
           },
         },
         siguiente_nodo: { type: "end", status: "OK" },
