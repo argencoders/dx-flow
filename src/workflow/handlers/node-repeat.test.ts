@@ -105,7 +105,7 @@ test("NodeRepeat: Escenarios de Fallo por Parámetros Inválidos", async () => {
     {
       name: "Error",
       message:
-        "❌ ERROR: El nodo de tipo 'repeat' debe especificar un nodo objetivo 'target'.",
+        "❌ ERROR: El nodo de tipo 'repeat' debe especificar 'steps' (arreglo inline) o 'target' (clave de nodo).",
     },
   );
 
@@ -123,4 +123,36 @@ test("NodeRepeat: Escenarios de Fallo por Parámetros Inválidos", async () => {
         "❌ ERROR: El nodo de tipo 'repeat' debe especificar un nodo de destino 'onSuccess'.",
     },
   );
+});
+
+test("NodeRepeat: Ejecución en bucle de steps inline hasta que until evalúe a true", async () => {
+  let estadoActual = { contador: 0 };
+  const contextMock = {
+    mutate: (patch: any) => {
+      estadoActual = { ...estadoActual, ...patch };
+    },
+  };
+
+  const node = {
+    type: "repeat",
+    steps: [
+      (state: any, ctx: any) => {
+        ctx.mutate({ contador: state.contador + 1 });
+      },
+    ],
+    until: (state: any) => state.contador >= 3,
+    onSuccess: "fin_bucle_inline",
+  };
+
+  const result = await nodeRepeatHandler({
+    node,
+    state: estadoActual,
+    context: contextMock as any,
+  });
+
+  assert.equal(estadoActual.contador, 3);
+  assert.deepStrictEqual(result, {
+    type: "NEXT",
+    target: "fin_bucle_inline",
+  });
 });

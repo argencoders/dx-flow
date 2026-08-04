@@ -48,7 +48,7 @@ export type InlineStep<
     ) => Promise<string | SuspendResult | void> | string | SuspendResult | void);
 
 /**
- * Validador atómico paso a paso para elementos inline dentro de sequence.steps.
+ * Validador atómico paso a paso para elementos inline dentro de sequence.steps o repeat.steps.
  */
 export type ValidateSingleInlineStep<
   TStep,
@@ -58,36 +58,34 @@ export type ValidateSingleInlineStep<
   TEvents = Record<string, any>,
 > = TStep extends (...args: any[]) => Promise<infer TRes> | infer TRes
   ? [TRes] extends [SuspendResult | void | undefined]
-    ? (
+    ? TStep
+    : (
         state: DeepReadonly<TState>,
         context: WorkflowContext<TState, TNodesList, TEvents> & {
           services: TServices;
         },
       ) => Promise<SuspendResult | void> | SuspendResult | void
-    : `❌ ERROR: La función inline shorthand no puede retornar códigos de error. Usar formato de objeto { type: "action", action: ..., onError: ... }.`
-  : TStep extends { type: "action" }
-    ? TStep extends {
+  : TStep extends {
+        type: "action";
         action: (...args: any[]) => Promise<infer TRes> | infer TRes;
       }
-      ? TStep extends { onError: infer E }
-        ? E extends Record<string, any>
-          ? [TRes] extends [keyof E | SuspendResult | void | undefined]
-            ? Omit<TStep, "action" | "onError"> & {
-                type: "action";
-                action: (
-                  state: DeepReadonly<TState>,
-                  context: WorkflowContext<TState, TNodesList, TEvents> & {
-                    services: TServices;
-                  },
-                ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
-                onError: { [P in keyof E]: TNodesList };
-              }
-            : Omit<TStep, "action"> & {
-                action: `❌ ERROR: El paso inline 'action' retorna un error no declarado en 'onError'.`;
-              }
-          : InlineActionStep<TState, TServices, TNodesList, TEvents>
+    ? TStep extends { onError: infer E }
+      ? E extends Record<string, any>
+        ? [TRes] extends [keyof E | SuspendResult | void | undefined]
+          ? TStep
+          : {
+              type: "action";
+              action: (
+                state: DeepReadonly<TState>,
+                context: WorkflowContext<TState, TNodesList, TEvents> & {
+                  services: TServices;
+                },
+              ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
+              onError: { [P in keyof E]: TNodesList };
+            }
         : [TRes] extends [SuspendResult | void | undefined]
-          ? Omit<TStep, "action"> & {
+          ? TStep
+          : {
               type: "action";
               action: (
                 state: DeepReadonly<TState>,
@@ -96,10 +94,17 @@ export type ValidateSingleInlineStep<
                 },
               ) => Promise<SuspendResult | void> | SuspendResult | void;
             }
-          : Omit<TStep, "action"> & {
-              action: `❌ ERROR: El paso inline 'action' retorna un código de error pero no especificó 'onError'.`;
-            }
-      : InlineActionStep<TState, TServices, TNodesList, TEvents>
+      : [TRes] extends [SuspendResult | void | undefined]
+        ? TStep
+        : {
+            type: "action";
+            action: (
+              state: DeepReadonly<TState>,
+              context: WorkflowContext<TState, TNodesList, TEvents> & {
+                services: TServices;
+              },
+            ) => Promise<SuspendResult | void> | SuspendResult | void;
+          }
     : TStep extends { type: "delay" }
       ? InlineDelayStep
       : TStep extends { type: "choose" }
@@ -172,13 +177,21 @@ export interface NodeDefinitions<
     onSuccess: TNodesList;
   };
 
-  repeat: {
-    type: "repeat";
-    target: TNodesList;
-    until?: (state: DeepReadonly<TState>) => boolean;
-    count?: number | ((state: DeepReadonly<TState>) => number);
-    onSuccess: TNodesList;
-  };
+  repeat:
+    | {
+        type: "repeat";
+        target: TNodesList;
+        until?: (state: DeepReadonly<TState>) => boolean;
+        count?: number | ((state: DeepReadonly<TState>) => number);
+        onSuccess: TNodesList;
+      }
+    | {
+        type: "repeat";
+        steps: Array<InlineStep<TState, TServices, TNodesList, TEvents>>;
+        until?: (state: DeepReadonly<TState>) => boolean;
+        count?: number | ((state: DeepReadonly<TState>) => number);
+        onSuccess: TNodesList;
+      };
 
   parallel: {
     type: "parallel";
@@ -249,21 +262,47 @@ export type ValidateGraphNodes<
                 }
               : NodeDefinitions<TState, TServices, TNodesList, TEvents>["sequence"]
             : NodeDefinitions<TState, TServices, TNodesList, TEvents>["sequence"]
-          : TNodes[K] extends { onError: infer E }
-            ? E extends Record<string, any>
-              ? Omit<TNodes[K], "onError" | "action"> & {
-                  type: "action";
-                  action: (
-                    state: DeepReadonly<TState>,
-                    context: WorkflowContext<TState, TNodesList, TEvents> & {
-                      services: TServices;
-                    },
-                  ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
-                  onSuccess: TNodesList;
-                  onError: { [P in keyof E]: TNodesList };
-                } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+          : TType extends "repeat"
+            ? TNodes[K] extends { steps: infer TSteps }
+              ? TSteps extends Array<any>
+                ? Omit<TNodes[K], "steps"> & {
+                    type: "repeat";
+                    steps: ValidateSequenceSteps<
+                      TSteps,
+                      TState,
+                      TServices,
+                      TNodesList,
+                      TEvents
+                    >;
+                    until?: (state: DeepReadonly<TState>) => boolean;
+                    count?: number | ((state: DeepReadonly<TState>) => number);
+                    onSuccess: TNodesList;
+                  }
+                : NodeDefinitions<TState, TServices, TNodesList, TEvents>["repeat"]
+              : TNodes[K] extends { target: infer TTarget }
+                ? [TTarget] extends [TNodesList]
+                  ? TNodes[K] & { type: "repeat"; target: TNodesList; onSuccess: TNodesList }
+                  : Omit<TNodes[K], "target"> & {
+                      type: "repeat";
+                      target: TNodesList;
+                      onSuccess: TNodesList;
+                    }
+                : NodeDefinitions<TState, TServices, TNodesList, TEvents>["repeat"]
+            : TNodes[K] extends { onError: infer E }
+              ? E extends Record<string, any>
+                ? Omit<TNodes[K], "onError" | "action"> & {
+                    type: "action";
+                    action: (
+                      state: DeepReadonly<TState>,
+                      context: WorkflowContext<TState, TNodesList, TEvents> & {
+                        services: TServices;
+                      },
+                    ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
+                    onSuccess: TNodesList;
+                    onError: { [P in keyof E]: TNodesList };
+                  } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+                : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
               : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
-            : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
       : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
     : {
         type: keyof NodeDefinitions<TState, TServices, TNodesList, TEvents>;

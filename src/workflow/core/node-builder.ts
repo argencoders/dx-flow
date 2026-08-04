@@ -57,12 +57,24 @@ export interface SequenceNodeParams<
 /**
  * Parámetros para construir un nodo 'repeat'.
  */
-export interface RepeatNodeParams<TState, TNodesList extends string> {
-  target: TNodesList;
-  until?: (state: DeepReadonly<TState>) => boolean;
-  count?: number | ((state: DeepReadonly<TState>) => number);
-  onSuccess: TNodesList;
-}
+export type RepeatNodeParams<
+  TState = any,
+  TServices = any,
+  TNodesList extends string = string,
+  TEvents = Record<string, any>,
+> =
+  | {
+      target: TNodesList;
+      until?: (state: DeepReadonly<TState>) => boolean;
+      count?: number | ((state: DeepReadonly<TState>) => number);
+      onSuccess: TNodesList;
+    }
+  | {
+      steps: Array<InlineStep<TState, TServices, TNodesList, TEvents>>;
+      until?: (state: DeepReadonly<TState>) => boolean;
+      count?: number | ((state: DeepReadonly<TState>) => number);
+      onSuccess: TNodesList;
+    };
 
 /**
  * Parámetros para construir un nodo 'parallel'.
@@ -116,8 +128,13 @@ export interface NodeBuilder<
   >;
 
   repeat: <TNodesList extends string = string>(
-    params: RepeatNodeParams<TState, TNodesList>,
-  ) => { type: "repeat" } & RepeatNodeParams<TState, TNodesList>;
+    params: RepeatNodeParams<TState, TServices, TNodesList, TEvents>,
+  ) => { type: "repeat" } & RepeatNodeParams<
+    TState,
+    TServices,
+    TNodesList,
+    TEvents
+  >;
 
   parallel: <TNodesList extends string = string>(
     params: ParallelNodeParams<TNodesList>,

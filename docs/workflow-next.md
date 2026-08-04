@@ -52,7 +52,7 @@
 ### 🔄 Paso 5: Fisonomías Avanzadas y Azúcar Sintáctico (`src/workflow/features/`)
 
 - [x] **Fase 5.1: Secuencias Implícitas, Pipelines y Nodos Anónimos/Inline:** Ejecución secuencial de pasos inline puros (`InlineActionStep`, `InlineDelayStep`, `InlineChooseStep` y `Shorthand Action Callbacks`). Propagación de estado mutado en tiempo real entre pasos, fallthrough en `choose` y suspensión durable por sub-paso (`#step-i`).
-- [x] **Fase 5.2: Bucle e Iteración Condicional (`type: "repeat"`):** Estructura de iteración condicional `until(state)` y límites por `count`.
+- [x] **Fase 5.2: Bucle e Iteración Condicional (`type: "repeat"`):** Estructura de iteración condicional `until(state)` y límites por `count`, con soporte dual para `target` (clave registrada) y `steps: Array<InlineStep>` (pipeline de pasos inline puros con propagación de estado).
 - [x] **Fase 5.3: Paralelismo y Concurrencia (`type: "parallel"`):** Ejecución de múltiples ramas en paralelo (`branches`) con barrera de sincronización convergente.
 - [ ] **Fase 5.4: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial.
 - [ ] **Fase 5.5: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables.

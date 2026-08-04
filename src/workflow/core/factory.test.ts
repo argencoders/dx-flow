@@ -213,6 +213,35 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       typeof miGrafoSequenceInline
     >;
   }
+
+  function testFlujoRepeatPasosInline() {
+    const miGrafoRepeatInline = workflow.create({
+      id: "flujo_repeat_inline",
+      nodes: {
+        start: {
+          type: "repeat",
+          steps: [
+            (state, ctx) => {
+              ctx.mutate({ intentos: state.intentos + 1 });
+            },
+            {
+              type: "delay",
+              durationMs: 100,
+            },
+          ],
+          until: (state) => state.intentos >= 3,
+          count: 5,
+          onSuccess: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoRepeatInline,
+      typeof miGrafoRepeatInline
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
