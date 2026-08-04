@@ -34,12 +34,14 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
   assert.equal(resExito.type, "END");
   if (resExito.type === "END") {
     assert.equal(resExito.status, "COMPLETADO");
+    assert.equal(resExito.result, "success"); // 👈 Fallback por omisión a success
   }
 
-  // 2. Caso Error de Negocio / Cancelado
+  // 2. Caso Error de Negocio / Cancelado con result explícito
   const nodeEndError: NodeEndDef = {
     type: "end",
     status: "FONDOS_INSUFICIENTES",
+    result: "error",
   };
 
   const resError = await nodeEndHandler({
@@ -49,6 +51,7 @@ test("Workflow - NodeEnd: Ejecución Exitosa devolviendo el estado final (END st
   assert.equal(resError.type, "END");
   if (resError.type === "END") {
     assert.equal(resError.status, "FONDOS_INSUFICIENTES");
+    assert.equal(resError.result, "error"); // 👈 Valor explícito conservado
   }
 });
 

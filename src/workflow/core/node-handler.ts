@@ -6,7 +6,11 @@ import { WorkflowContext } from "./context.js";
  */
 export type NodeHandlerResult<TNodesList extends string> =
   | { type: "NEXT"; target: TNodesList }
-  | { type: "END"; status: string }
+  | {
+      type: "END";
+      status: string;
+      result?: "success" | "error" | "compensate" | "terminate";
+    }
   | { type: "SUSPEND"; eventName?: string; targetOnResume?: TNodesList };
 
 /**

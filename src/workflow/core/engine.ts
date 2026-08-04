@@ -18,6 +18,7 @@ export interface ExecutionStepRecord<TNodesList extends string> {
   resultType: "NEXT" | "END" | "SUSPEND";
   target?: TNodesList;
   status?: string;
+  endResult?: "success" | "error" | "compensate" | "terminate";
   eventName?: string;
 }
 
@@ -32,6 +33,7 @@ export type WorkflowExecutionResult<
       status: "COMPLETED";
       workflowId: string;
       endStatus: string;
+      endResult?: "success" | "error" | "compensate" | "terminate";
       finalState: DeepReadonly<TState>;
       history: Array<ExecutionStepRecord<TNodesList>>;
     }
@@ -186,11 +188,13 @@ export async function executeWorkflow<
         timestamp,
         resultType: "END",
         status: result.status,
+        endResult: result.result,
       });
       return {
         status: "COMPLETED",
         workflowId: graph.id,
         endStatus: result.status,
+        endResult: result.result,
         finalState: currentState as DeepReadonly<TState>,
         history,
       };

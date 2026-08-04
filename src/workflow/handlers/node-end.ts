@@ -16,8 +16,11 @@ export const nodeEndHandler: NodeHandler<any, any, any> = async ({
     );
   }
 
+  const endResult = node?.result ?? "success";
+
   return {
     type: "END",
     status: node.status,
+    result: endResult,
   };
 };
