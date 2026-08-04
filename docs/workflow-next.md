@@ -86,12 +86,12 @@
 - [x] **Detección de Nodos Huérfanos/Aislados:** Identificar nodos declarados en `nodes` a los que ninguna transición apunta.
 - [x] **Suite de Pruebas Atómicas:** `src/workflow/analyzer.test.ts`.
 
-### 🔄 Paso 7: Exportadores Visuales e Interoperabilidad (Mermaid & BPMN 2.0) (`src/workflow/exporters/`)
+### ✅ Paso 7: Exportadores Visuales e Interoperabilidad (Mermaid & BPMN 2.0) (`src/workflow/exporters/`)
 
-- [x] **Sub-Etapa 7.1 - Extractor IR y Exportador Mermaid.js (`src/workflow/exporters/ir.ts`, `mermaid.ts`):** Generar diagramas `graph TD` aplicando formas según tipo de nodo y clases CSS de estilo diferenciadas según la propiedad `result` en nodos `end` (`success`, `error`, `compensate`, `terminate`).
-- [x] **Suite de Pruebas y Snapshots Mermaid (`src/workflow/exporters/ir.test.ts`, `mermaid.test.ts`):** Pruebas atómicas de extracción IR, sintaxis Mermaid y generación automática de snapshot Markdown visual (`src/workflow/exporters/__snapshots__/mermaid-preview.md`).
-- [ ] **Sub-Etapa 7.2 - Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/bpmn.ts`):** Generar XML estándar compatible con Camunda Modeler mapeando `result` a los subtipos oficiales `<bpmn:errorEventDefinition>`, `<bpmn:compensateEventDefinition>`, etc.
-- [ ] **Suite de Pruebas de Exportación BPMN:** `src/workflow/exporters/bpmn.test.ts`.
+- [x] **Sub-Etapa 7.1 - Extractor IR y Exportador Mermaid.js (`src/workflow/exporters/ir.ts`, `mermaid.ts`):** Generar diagramas `graph LR` / `graph TD` aplicando formas según tipo de nodo y clases CSS de estilo diferenciadas según la propiedad `result` en nodos `end` (`success`, `error`, `compensate`, `terminate`).
+- [x] **Suite de Pruebas y Snapshots Mermaid (`src/workflow/exporters/ir.test.ts`, `mermaid.test.ts`):** Pruebas atómicas de extracción IR, sintaxis Mermaid y generación automática de snapshot Markdown visual (`src/workflow/exporters/__snapshots__/mermaid-exporter-snapshots.md`).
+- [x] **Sub-Etapa 7.2 - Exportador BPMN 2.0 XML / Camunda (`src/workflow/exporters/xml-builder.ts`, `bpmn.ts`):** Generar XML estándar compatible con Camunda Modeler y bpmn.io mapeando `result` a los subtipos oficiales `<bpmn:errorEventDefinition>`, `<bpmn:compensateEventDefinition>`, `<bpmn:terminateEventDefinition>`, etc.
+- [x] **Suite de Pruebas y Snapshots BPMN (`src/workflow/exporters/bpmn.test.ts`):** Pruebas atómicas de validez XML BPMN 2.0 y generación automática de snapshot `.bpmn` (`src/workflow/exporters/__snapshots__/bpmn-exporter-snapshots.bpmn`).
 
 ### ⬜ Paso 8: Persistencia Durable, Adaptadores de DB y EventStore (`src/workflow/persistence/`)
 
