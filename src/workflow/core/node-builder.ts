@@ -79,11 +79,22 @@ export type RepeatNodeParams<
 /**
  * Parámetros para construir un nodo 'parallel'.
  */
-export interface ParallelNodeParams<TNodesList extends string> {
-  branches: Array<TNodesList>;
-  onSuccess: TNodesList;
-  onError?: Record<string, TNodesList>;
-}
+export type ParallelNodeParams<
+  TState = any,
+  TServices = any,
+  TNodesList extends string = string,
+  TEvents = Record<string, any>,
+> =
+  | {
+      branches: Array<TNodesList>;
+      onSuccess: TNodesList;
+      onError?: Record<string, TNodesList>;
+    }
+  | {
+      branches: Array<InlineStep<TState, TServices, TNodesList, TEvents>>;
+      onSuccess: TNodesList;
+      onError?: Record<string, TNodesList>;
+    };
 
 /**
  * Parámetros para construir un nodo 'end'.
@@ -137,8 +148,13 @@ export interface NodeBuilder<
   >;
 
   parallel: <TNodesList extends string = string>(
-    params: ParallelNodeParams<TNodesList>,
-  ) => { type: "parallel" } & ParallelNodeParams<TNodesList>;
+    params: ParallelNodeParams<TState, TServices, TNodesList, TEvents>,
+  ) => { type: "parallel" } & ParallelNodeParams<
+    TState,
+    TServices,
+    TNodesList,
+    TEvents
+  >;
 
   end: (params: EndNodeParams) => { type: "end" } & EndNodeParams;
 }

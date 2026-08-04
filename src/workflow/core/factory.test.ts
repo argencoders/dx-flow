@@ -242,6 +242,35 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       typeof miGrafoRepeatInline
     >;
   }
+
+  function testFlujoParallelRamasInline() {
+    const miGrafoParallelInline = workflow.create({
+      id: "flujo_parallel_inline",
+      nodes: {
+        start: {
+          type: "parallel",
+          branches: [
+            // Rama 1: Shorthand callback
+            (state, ctx) => {
+              ctx.mutate({ intentos: state.intentos + 1 });
+            },
+            // Rama 2: Paso delay inline
+            {
+              type: "delay",
+              durationMs: 100,
+            },
+          ],
+          onSuccess: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoParallelInline,
+      typeof miGrafoParallelInline
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
@@ -280,8 +309,10 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
       nodes: {
         start: {
           type: "parallel",
-          // @ts-expect-error - ❌ Rama fantasma en branches
-          branches: ["nodo_fantasma"],
+          branches: [
+            // @ts-expect-error - ❌ Rama fantasma en branches
+            "nodo_fantasma",
+          ],
           onSuccess: "fin",
         },
         fin: { type: "end", status: "DONE" },

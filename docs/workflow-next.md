@@ -66,6 +66,8 @@
   Helper opcional fuertemente tipado `node` retornado por `defineWorkflow()` para la construcción fluida de nodos. Se posterga en la wishlist por ser azúcar sintáctico opcional frente a la declaración explícita de objetos en `nodes`.
 - **Aislamiento del Reporte de Error en `action` dentro de Pasos Inline:**
   En la versión actual de TypeScript, cuando un elemento de un arreglo/tupla (`steps: [...]`) no satisface la firma de retorno esperada en `action` (por ejemplo, al retornar un error no declarado en `onError`), la marca de error estático del compilador se coloca sobre la apertura del objeto del paso `{ type: "action", ... }` en lugar de ubicarse directamente sobre la clave de propiedad `action: (state, ctx) => ...`. Queda anotado en la wishlist investigar refinamientos de tipos o futuras versiones de TypeScript que permitan posicionar quirúrgicamente el error en la sub-propiedad `action`.
+- **Estrategia de Fusión y Manejo de Conflictos en Mutaciones Concurrentes (`parallel`):**
+  Analizar patrones avanzados de consolidación de estado (ej. merge profundo de parches, detección estática/dinámica de colisiones de campos o mutadores por slice de estado) cuando ramas concurrentes ejecutan `ctx.mutate()` en paralelo.
 
 ---
 

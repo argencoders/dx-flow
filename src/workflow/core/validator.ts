@@ -193,12 +193,19 @@ export interface NodeDefinitions<
         onSuccess: TNodesList;
       };
 
-  parallel: {
-    type: "parallel";
-    branches: Array<TNodesList>;
-    onSuccess: TNodesList;
-    onError?: Record<string, TNodesList>;
-  };
+  parallel:
+    | {
+        type: "parallel";
+        branches: Array<TNodesList>;
+        onSuccess: TNodesList;
+        onError?: Record<string, TNodesList>;
+      }
+    | {
+        type: "parallel";
+        branches: Array<InlineStep<TState, TServices, TNodesList, TEvents>>;
+        onSuccess: TNodesList;
+        onError?: Record<string, TNodesList>;
+      };
 }
 
 /**
@@ -288,21 +295,46 @@ export type ValidateGraphNodes<
                       onSuccess: TNodesList;
                     }
                 : NodeDefinitions<TState, TServices, TNodesList, TEvents>["repeat"]
-            : TNodes[K] extends { onError: infer E }
-              ? E extends Record<string, any>
-                ? Omit<TNodes[K], "onError" | "action"> & {
-                    type: "action";
-                    action: (
-                      state: DeepReadonly<TState>,
-                      context: WorkflowContext<TState, TNodesList, TEvents> & {
-                        services: TServices;
-                      },
-                    ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
-                    onSuccess: TNodesList;
-                    onError: { [P in keyof E]: TNodesList };
-                  } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+            : TType extends "parallel"
+              ? TNodes[K] extends { branches: infer TBranches }
+                ? TBranches extends Array<infer TItem>
+                  ? [TItem] extends [string]
+                    ? [TItem] extends [TNodesList]
+                      ? TNodes[K] & { type: "parallel"; branches: Array<TNodesList>; onSuccess: TNodesList }
+                      : Omit<TNodes[K], "branches"> & {
+                          type: "parallel";
+                          branches: Array<TNodesList>;
+                          onSuccess: TNodesList;
+                        }
+                    : Omit<TNodes[K], "branches"> & {
+                        type: "parallel";
+                        branches: ValidateSequenceSteps<
+                          TBranches,
+                          TState,
+                          TServices,
+                          TNodesList,
+                          TEvents
+                        >;
+                        onSuccess: TNodesList;
+                        onError?: Record<string, TNodesList>;
+                      }
+                  : NodeDefinitions<TState, TServices, TNodesList, TEvents>["parallel"]
+                : NodeDefinitions<TState, TServices, TNodesList, TEvents>["parallel"]
+              : TNodes[K] extends { onError: infer E }
+                ? E extends Record<string, any>
+                  ? Omit<TNodes[K], "onError" | "action"> & {
+                      type: "action";
+                      action: (
+                        state: DeepReadonly<TState>,
+                        context: WorkflowContext<TState, TNodesList, TEvents> & {
+                          services: TServices;
+                        },
+                      ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
+                      onSuccess: TNodesList;
+                      onError: { [P in keyof E]: TNodesList };
+                    } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+                  : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
                 : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
-              : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
       : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
     : {
         type: keyof NodeDefinitions<TState, TServices, TNodesList, TEvents>;

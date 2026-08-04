@@ -71,3 +71,49 @@ test("NodeParallel: Escenarios de Fallo por Parámetros Inválidos", async () =>
     },
   );
 });
+
+test("NodeParallel: Ejecución concurrente de ramas inline y consolidación de mutaciones", async () => {
+  let estadoActual = { notificado: false, facturado: false };
+  const contextMock = {
+    mutate: (patch: any) => {
+      estadoActual = { ...estadoActual, ...patch };
+    },
+  };
+
+  const node = {
+    type: "parallel",
+    branches: [
+      // Rama 1: Shorthand
+      (_state: any, ctx: any) => {
+        ctx.mutate({ notificado: true });
+      },
+      // Rama 2: Secuencia inline explícita
+      {
+        type: "sequence",
+        steps: [
+          {
+            type: "delay",
+            durationMs: 50,
+          },
+          (_state: any, ctx: any) => {
+            ctx.mutate({ facturado: true });
+          },
+        ],
+      },
+    ],
+    onSuccess: "unir_ramas",
+  };
+
+  const result = await nodeParallelHandler({
+    node,
+    state: estadoActual,
+    context: contextMock as any,
+  });
+
+  assert.equal(estadoActual.notificado, true);
+  assert.equal(estadoActual.facturado, true);
+  assert.deepStrictEqual(result, {
+    type: "NEXT",
+    target: "unir_ramas",
+  });
+});
