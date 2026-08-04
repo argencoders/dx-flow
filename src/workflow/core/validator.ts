@@ -37,7 +37,6 @@ export type InlineStep<
   TNodesList extends string,
   TEvents = Record<string, any>,
 > =
-  | TNodesList
   | InlineActionStep<TState, TServices, TNodesList, TEvents>
   | InlineDelayStep
   | InlineChooseStep<TState, TNodesList>
@@ -47,6 +46,84 @@ export type InlineStep<
         services: TServices;
       },
     ) => Promise<string | SuspendResult | void> | string | SuspendResult | void);
+
+/**
+ * Validador atómico paso a paso para elementos inline dentro de sequence.steps.
+ */
+export type ValidateSingleInlineStep<
+  TStep,
+  TState,
+  TServices,
+  TNodesList extends string,
+  TEvents = Record<string, any>,
+> = TStep extends (...args: any[]) => Promise<infer TRes> | infer TRes
+  ? [TRes] extends [SuspendResult | void | undefined]
+    ? (
+        state: DeepReadonly<TState>,
+        context: WorkflowContext<TState, TNodesList, TEvents> & {
+          services: TServices;
+        },
+      ) => Promise<SuspendResult | void> | SuspendResult | void
+    : `❌ ERROR: La función inline shorthand no puede retornar códigos de error. Usar formato de objeto { type: "action", action: ..., onError: ... }.`
+  : TStep extends { type: "action" }
+    ? TStep extends {
+        action: (...args: any[]) => Promise<infer TRes> | infer TRes;
+      }
+      ? TStep extends { onError: infer E }
+        ? E extends Record<string, any>
+          ? [TRes] extends [keyof E | SuspendResult | void | undefined]
+            ? Omit<TStep, "action" | "onError"> & {
+                type: "action";
+                action: (
+                  state: DeepReadonly<TState>,
+                  context: WorkflowContext<TState, TNodesList, TEvents> & {
+                    services: TServices;
+                  },
+                ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
+                onError: { [P in keyof E]: TNodesList };
+              }
+            : Omit<TStep, "action"> & {
+                action: `❌ ERROR: El paso inline 'action' retorna un error no declarado en 'onError'.`;
+              }
+          : InlineActionStep<TState, TServices, TNodesList, TEvents>
+        : [TRes] extends [SuspendResult | void | undefined]
+          ? Omit<TStep, "action"> & {
+              type: "action";
+              action: (
+                state: DeepReadonly<TState>,
+                context: WorkflowContext<TState, TNodesList, TEvents> & {
+                  services: TServices;
+                },
+              ) => Promise<SuspendResult | void> | SuspendResult | void;
+            }
+          : Omit<TStep, "action"> & {
+              action: `❌ ERROR: El paso inline 'action' retorna un código de error pero no especificó 'onError'.`;
+            }
+      : InlineActionStep<TState, TServices, TNodesList, TEvents>
+    : TStep extends { type: "delay" }
+      ? InlineDelayStep
+      : TStep extends { type: "choose" }
+        ? InlineChooseStep<TState, TNodesList>
+        : InlineStep<TState, TServices, TNodesList, TEvents>;
+
+/**
+ * Mapeador tupla/arreglo para validar la lista completa de pasos inline.
+ */
+export type ValidateSequenceSteps<
+  TSteps,
+  TState,
+  TServices,
+  TNodesList extends string,
+  TEvents = Record<string, any>,
+> = {
+  [I in keyof TSteps]: ValidateSingleInlineStep<
+    TSteps[I],
+    TState,
+    TServices,
+    TNodesList,
+    TEvents
+  >;
+};
 
 /**
  * Registro extensible de tipos de nodos del framework (strictly typed).
@@ -156,21 +233,37 @@ export type ValidateGraphNodes<
                 }
               : `❌ ERROR: El nodo '${K & string}' retorna un código de error pero no especificó 'onError'.`
           : NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
-        : TNodes[K] extends { onError: infer E }
-          ? E extends Record<string, any>
-            ? Omit<TNodes[K], "onError" | "action"> & {
-                type: "action";
-                action: (
-                  state: DeepReadonly<TState>,
-                  context: WorkflowContext<TState, TNodesList, TEvents> & {
-                    services: TServices;
-                  },
-                ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
-                onSuccess: TNodesList;
-                onError: { [P in keyof E]: TNodesList };
-              } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+        : TType extends "sequence"
+          ? TNodes[K] extends { steps: infer TSteps }
+            ? TSteps extends Array<any>
+              ? Omit<TNodes[K], "steps"> & {
+                  type: "sequence";
+                  steps: ValidateSequenceSteps<
+                    TSteps,
+                    TState,
+                    TServices,
+                    TNodesList,
+                    TEvents
+                  >;
+                  onSuccess: TNodesList;
+                }
+              : NodeDefinitions<TState, TServices, TNodesList, TEvents>["sequence"]
+            : NodeDefinitions<TState, TServices, TNodesList, TEvents>["sequence"]
+          : TNodes[K] extends { onError: infer E }
+            ? E extends Record<string, any>
+              ? Omit<TNodes[K], "onError" | "action"> & {
+                  type: "action";
+                  action: (
+                    state: DeepReadonly<TState>,
+                    context: WorkflowContext<TState, TNodesList, TEvents> & {
+                      services: TServices;
+                    },
+                  ) => Promise<keyof E | SuspendResult | void> | keyof E | SuspendResult | void;
+                  onSuccess: TNodesList;
+                  onError: { [P in keyof E]: TNodesList };
+                } & NodeDefinitions<TState, TServices, TNodesList, TEvents>["action"]
+              : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
             : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
-          : TNodes[K] & NodeDefinitions<TState, TServices, TNodesList, TEvents>[TType]
       : `❌ ERROR: El tipo de nodo '${TType & string}' no está registrado en el framework.`
     : {
         type: keyof NodeDefinitions<TState, TServices, TNodesList, TEvents>;

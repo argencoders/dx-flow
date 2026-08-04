@@ -4,7 +4,7 @@ import { NodeHandler, NodeHandlerResult } from "../core/node-handler.js";
  * Estrategia de ejecución para nodos de tipo 'sequence'.
  * - Valida la estructura declarativa de 'steps' y 'onSuccess'.
  * - Si 'steps' es un array vacío, transiciona inmediatamente a 'onSuccess'.
- * - Soporta pasos inline (funciones shorthand, objetos de tipo action, delay, choose) y referencias por string key.
+ * - Soporta exclusivamente pasos inline puros (funciones shorthand, objetos de tipo action, delay, choose).
  * - Para acciones inline, onSuccess es implícito (continúa al siguiente paso).
  * - Para choose inline sin otherwise, si no hay coincidencia realiza fallthrough al siguiente paso.
  */
@@ -37,10 +37,9 @@ export const nodeSequenceHandler: NodeHandler<any, any, any> = async ({
     const step = node.steps[i];
 
     if (typeof step === "string") {
-      return {
-        type: "NEXT",
-        target: step,
-      };
+      throw new Error(
+        `❌ ERROR: El paso '${step}' en 'sequence' es un string key. Los pasos de 'sequence' deben ser nodos inline puros.`,
+      );
     }
 
     if (typeof step === "function") {

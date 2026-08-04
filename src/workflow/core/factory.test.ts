@@ -76,7 +76,15 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       nodes: {
         start: {
           type: "sequence",
-          steps: ["paso_1", "paso_2"],
+          steps: [
+            (state, ctx) => {
+              ctx.mutate({ intentos: state.intentos + 1 });
+            },
+            {
+              type: "delay",
+              durationMs: 100,
+            },
+          ],
           onSuccess: "bucle_reintentos",
         },
         paso_1: {
@@ -192,16 +200,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
                 },
               ],
             },
-            // 5. String key tradicional
-            "nodo_registrado",
           ],
-          onSuccess: "fin_exito",
-        },
-        nodo_registrado: {
-          type: "action",
-          action: (state, ctx) => {
-            ctx.mutate({ intentos: 0 });
-          },
           onSuccess: "fin_exito",
         },
         fin_exito: { type: "end", status: "SUCCESS" },
@@ -227,22 +226,6 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
           // @ts-expect-error - ❌ El error saltará aquí por apuntar a un nodo fantasma
           onTimeout: "NODO_FANTASMA_QUE_NO_EXISTE",
         },
-      },
-    });
-  }
-
-  function testFalloSequencePasosInexistentes() {
-    workflow.create({
-      id: "sequence_pasos_rotos",
-      nodes: {
-        start: {
-          type: "sequence",
-          // @ts-expect-error - ❌ Paso fantasma en steps
-          steps: ["paso_existente", "paso_fantasma"],
-          onSuccess: "fin",
-        },
-        paso_existente: { type: "end", status: "OK" },
-        fin: { type: "end", status: "DONE" },
       },
     });
   }
@@ -334,6 +317,50 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
           onSuccess: "start",
           onError: {},
         },
+      },
+    });
+  }
+
+  function testFalloErrorNoMapeadoEnPasoInlineAction() {
+    workflow.create({
+      id: "error_inline_sin_mapear",
+      nodes: {
+        start: {
+          type: "sequence",
+          steps: [
+            // @ts-expect-error - ❌ Retorna "ERROR_INLINE_UNMAPPED" que no está declarado en onError
+            {
+              type: "action",
+              action: (state, ctx) => {
+                return "ERROR_INLINE_UNMAPPED";
+              },
+              onError: {
+                OTRO_ERROR: "fin",
+              },
+            },
+          ],
+          onSuccess: "fin",
+        },
+        fin: { type: "end", status: "OK" },
+      },
+    });
+  }
+
+  function testFalloShorthandCallbackRetornaError() {
+    workflow.create({
+      id: "shorthand_retorna_error",
+      nodes: {
+        start: {
+          type: "sequence",
+          steps: [
+            // @ts-expect-error - ❌ Shorthand function no puede retornar código de error
+            (state, ctx) => {
+              return "ERROR_EN_SHORTHAND";
+            },
+          ],
+          onSuccess: "fin",
+        },
+        fin: { type: "end", status: "OK" },
       },
     });
   }
