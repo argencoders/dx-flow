@@ -957,3 +957,49 @@ test("Integration E2E - Nodos End: Propagación de la propiedad endResult (Fallb
     assert.equal(resError.history[1].endResult, "error");
   }
 });
+
+test("Integration E2E: Inferencia Determinista del Nodo Inicial Sin Clave 'start' (Primer nodo en orden de insercion)", async () => {
+  interface EstadoFactura {
+    monto: number;
+    aprobada: boolean;
+  }
+
+  const wfFactura = defineWorkflow<EstadoFactura, Record<string, never>>();
+
+  // Grafo cuyo primer nodo se llama 'recibir_factura' en lugar de 'start'
+  const graphFactura = wfFactura.create({
+    id: "procesamiento_facturas_v1",
+    nodes: {
+      recibir_factura: {
+        type: "action",
+        action: (state, ctx) => {
+          if (state.monto < 1000) {
+            ctx.mutate({ aprobada: true });
+          }
+        },
+        onSuccess: "fin_factura",
+      },
+      fin_factura: {
+        type: "end",
+        status: "FACTURA_PROCESADA",
+      },
+    },
+  });
+
+  // Ejecución sin especificar startNodeId ni tener la clave 'start':
+  // El motor infiere automáticamente 'recibir_factura' como nodo de inicio por ser la primera clave declarada.
+  const res = await executeWorkflow({
+    graph: graphFactura,
+    initialState: { monto: 500, aprobada: false },
+    services: {},
+  });
+
+  assert.equal(res.status, "COMPLETED");
+  if (res.status === "COMPLETED") {
+    assert.equal(res.endStatus, "FACTURA_PROCESADA");
+    assert.equal(res.finalState.aprobada, true);
+    assert.equal(res.history.length, 2);
+    assert.equal(res.history[0].nodeId, "recibir_factura");
+    assert.equal(res.history[1].nodeId, "fin_factura");
+  }
+});

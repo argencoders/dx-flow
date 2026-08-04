@@ -86,8 +86,13 @@ export async function executeWorkflow<
   signalPayload,
 }: ExecuteWorkflowOptions<TState, TServices, TNodesList>): Promise<WorkflowExecutionResult<TState, TNodesList>> {
   let currentState: TState = initialState;
+  const defaultInitialNodeId = (
+    (graph.nodes as Record<string, any>)["start"]
+      ? "start"
+      : Object.keys(graph.nodes)[0]
+  ) as TNodesList;
   let currentNodeId: TNodesList | undefined =
-    startNodeId ?? ("start" as TNodesList);
+    startNodeId ?? defaultInitialNodeId;
 
   const history: Array<ExecutionStepRecord<TNodesList>> = [];
   const compensationStack: Array<(state: any, context: any) => Promise<void> | void> = [];

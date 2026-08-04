@@ -57,7 +57,8 @@
 - [x] **Fase 5.4: Políticas de Reintento (`RetryPolicy`):** Reintentos automáticos configurables con backoff exponencial, jitter, cap máximo y errores reintentables (`retryableErrors`) tanto en nodos `action` como en pasos inline `InlineActionStep`.
 - [x] **Fase 5.5: Patrón Saga y Compensaciones:** Cancelaciones y rollbacks distribuidos ejecutando callbacks `compensate` en orden inverso ante fallos no recuperables tanto en nodos `action` como en pasos inline.
 - [x] **Fase 5.6: Clasificación Semántica de Nodos Terminales (`result` en `node-end`):** Propiedad opcional `result?: "success" | "error" | "compensate" | "terminate"` (alineada con BPMN 2.0 End Event Result) con fallback automático a `"success"` para alimentar el analizador de topología y los exportadores diagramáticos.
-- [ ] **Fase 5.7: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
+- [x] **Fase 5.7: Inferencia Determinista del Nodo Inicial:** Resolución automática del nodo de entrada priorizando `startNodeId` explícito, la clave `"start"` si existe, o en su defecto la primera llave declarada sintácticamente en `nodes` aprovechando el orden de inserción garantizado por ECMAScript (`Object.keys(nodes)[0]`).
+- [ ] **Fase 5.8: Sub-Workflows (`type: "subworkflow"`):** Composición modular de flujos dentro de flujos.
 
 ---
 
@@ -69,8 +70,6 @@
   En la versión actual de TypeScript, cuando un elemento de un arreglo/tupla (`steps: [...]`) no satisface la firma de retorno esperada en `action` (por ejemplo, al retornar un error no declarado en `onError`), la marca de error estático del compilador se coloca sobre la apertura del objeto del paso `{ type: "action", ... }` en lugar de ubicarse directamente sobre la clave de propiedad `action: (state, ctx) => ...`. Queda anotado en la wishlist investigar refinamientos de tipos o futuras versiones de TypeScript que permitan posicionar quirúrgicamente el error en la sub-propiedad `action`.
 - **Estrategia de Fusión y Manejo de Conflictos en Mutaciones Concurrentes (`parallel`):**
   Analizar patrones avanzados de consolidación de estado (ej. merge profundo de parches, detección estática/dinámica de colisiones de campos o mutadores por slice de estado) cuando ramas concurrentes ejecutan `ctx.mutate()` en paralelo.
-- **Inferencia Determinista del Nodo Inicial (`startNodeId`):**
-  Resolución automática del nodo de entrada priorizando `startNodeId` explícito, la clave `"start"` si existe, o en su defecto la primera llave declarada sintácticamente en `nodes` aprovechando el orden de inserción garantizado por ECMAScript (`Object.keys(nodes)[0]`).
 
 ---
 

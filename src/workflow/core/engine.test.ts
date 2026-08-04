@@ -258,3 +258,48 @@ test("Workflow - Engine: Escenarios de Fallo de Runtime", async () => {
     },
   );
 });
+
+test("Workflow - Engine: Inferencia Determinista del Nodo Inicial (startNodeId / 'start' / orden de insercion)", async () => {
+  // 1. Grafo sin nodo "start", infiere el primer nodo en orden de declaración ("paso_inicial")
+  const graphSinStartKey = wf.create({
+    id: "grafo_sin_start_key",
+    nodes: {
+      paso_inicial: {
+        type: "action",
+        action: (state, ctx) => {
+          ctx.mutate({ contador: 10 });
+        },
+        onSuccess: "fin",
+      },
+      fin: { type: "end", status: "OK_SIN_START" },
+    },
+  });
+
+  const resInferencia = await executeWorkflow({
+    graph: graphSinStartKey,
+    initialState: { contador: 0, esVip: false, pagoRecibido: false },
+    services: { notificar: () => {} },
+  });
+
+  assert.equal(resInferencia.status, "COMPLETED");
+  if (resInferencia.status === "COMPLETED") {
+    assert.equal(resInferencia.endStatus, "OK_SIN_START");
+    assert.equal(resInferencia.finalState.contador, 10);
+    assert.equal(resInferencia.history[0].nodeId, "paso_inicial");
+  }
+
+  // 2. Grafo con startNodeId explícito sobreescribiendo el orden por defecto
+  const resExplicito = await executeWorkflow({
+    graph: graphSinStartKey,
+    initialState: { contador: 0, esVip: false, pagoRecibido: false },
+    services: { notificar: () => {} },
+    startNodeId: "fin",
+  });
+
+  assert.equal(resExplicito.status, "COMPLETED");
+  if (resExplicito.status === "COMPLETED") {
+    assert.equal(resExplicito.endStatus, "OK_SIN_START");
+    assert.equal(resExplicito.history.length, 1);
+    assert.equal(resExplicito.history[0].nodeId, "fin");
+  }
+});
