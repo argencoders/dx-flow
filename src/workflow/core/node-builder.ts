@@ -1,6 +1,6 @@
 import { DeepReadonly } from "../../core/deep-readonly.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
-import { InlineStep } from "./validator.js";
+import { InlineStep, RetryPolicy } from "./validator.js";
 
 /**
  * Parámetros para construir un nodo 'action'.
@@ -18,8 +18,15 @@ export interface ActionNodeParams<
       services: TServices;
     },
   ) => TActionReturn;
+  compensate?: (
+    state: DeepReadonly<TState>,
+    context: WorkflowContext<TState, TNodesList, TEvents> & {
+      services: TServices;
+    },
+  ) => Promise<void> | void;
   onSuccess: TNodesList;
   onError?: Record<string, TNodesList>;
+  retry?: RetryPolicy;
 }
 
 /**

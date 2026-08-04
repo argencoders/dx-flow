@@ -349,6 +349,49 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       >
     >;
   }
+
+  function testFlujoSagaConCompensacionesValidas() {
+    const miGrafoSaga = workflow.create({
+      id: "flujo_saga_valido",
+      nodes: {
+        reservar_stock: {
+          type: "action",
+          action: (state, ctx) => {
+            ctx.mutate({ intentos: state.intentos + 1 });
+          },
+          compensate: (state, ctx) => {
+            ctx.mutate({ nombre: "ROLLED_BACK" });
+          },
+          onSuccess: "pasos_secuencia",
+        },
+        pasos_secuencia: {
+          type: "sequence",
+          steps: [
+            {
+              type: "action",
+              action: (state, ctx) => {
+                ctx.mutate({ nombre: "PasoCobro" });
+              },
+              compensate: async (state, ctx) => {
+                ctx.mutate({ nombre: "CobroReembolsado" });
+              },
+            },
+          ],
+          onSuccess: "fin_exito",
+        },
+        fin_exito: { type: "end", status: "SUCCESS" },
+      },
+    });
+
+    type TestAsignabilidad = Expect<
+      typeof miGrafoSaga,
+      WorkflowGraph<
+        EstadoSimulado,
+        typeof serviciosMock,
+        "reservar_stock" | "pasos_secuencia" | "fin_exito"
+      >
+    >;
+  }
 });
 
 test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => {
@@ -514,6 +557,24 @@ test("Workflow - Factory: Escenarios de Fallo por Infracciones Lógicas", () => 
             // @ts-expect-error - ❌ maxAttempts debe ser un number, no string
             maxAttempts: "TRES",
             initialIntervalMs: 1000,
+          },
+          onSuccess: "fin",
+        },
+        fin: { type: "end", status: "OK" },
+      },
+    });
+  }
+
+  function testFalloCompensateMutacionInexistente() {
+    workflow.create({
+      id: "compensate_mutacion_invalida",
+      nodes: {
+        start: {
+          type: "action",
+          action: (state, ctx) => {},
+          compensate: (state, ctx) => {
+            // @ts-expect-error - ❌ Campo invalido que no existe en TState
+            ctx.mutate({ campoInexistenteEnCompensate: 123 });
           },
           onSuccess: "fin",
         },

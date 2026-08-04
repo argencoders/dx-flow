@@ -23,6 +23,12 @@ export interface InlineActionStep<
       services: TServices;
     },
   ) => Promise<string | SuspendResult | void> | string | SuspendResult | void;
+  compensate?: (
+    state: DeepReadonly<TState>,
+    context: WorkflowContext<TState, TNodesList, TEvents> & {
+      services: TServices;
+    },
+  ) => Promise<void> | void;
   onError?: Record<string, TNodesList>;
   retry?: RetryPolicy;
 }
@@ -157,6 +163,12 @@ export interface NodeDefinitions<
         services: TServices;
       },
     ) => Promise<string | SuspendResult | void> | string | SuspendResult | void;
+    compensate?: (
+      state: DeepReadonly<TState>,
+      context: WorkflowContext<TState, TNodesList, TEvents> & {
+        services: TServices;
+      },
+    ) => Promise<void> | void;
     onSuccess: TNodesList;
     onError?: Record<string, TNodesList>;
     retry?: RetryPolicy;
