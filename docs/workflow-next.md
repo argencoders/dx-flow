@@ -72,6 +72,12 @@
   Analizar patrones avanzados de consolidación de estado (ej. merge profundo de parches, detección estática/dinámica de colisiones de campos o mutadores por slice de estado) cuando ramas concurrentes ejecutan `ctx.mutate()` en paralelo.
 - **Refactorización de Metadatos de Dominio Nativos (Agnósticos del Exportador):**
   Integrar directamente en la firma de `defineWorkflow().create({...})` metadatos nativos de dominio sin strings por defecto ni datos "mágicos" inventados por los exportadores (`name`, `description`, `version`, `author`, `tags` a nivel de grafo, y `name`, `description`, `service` a nivel de nodo). Se descarta `sideEffects` como propiedad manual obligatoria dado que los efectos secundarios (mutaciones `ctx.mutate()`, transiciones y llamadas a servicios) pueden deducirse o extraerse limpiamente desde la estructura estática del grafo y la traza de runtime del motor.
+- **Nodo Duradero de Suspensión y Eventos (`type: "wait"`):**
+  A diferencia del nodo `delay` en memoria, el nodo `type: "wait"` implementa la deshidratación e interrupción durable del proceso (`SUSPEND`):
+  - **Sintaxis de Tiempo Humano:** Parser nativo que acepta cadenas como `"30s"`, `"15m"`, `"36h"`, `"2d 12h"`, `"1w"`, `"1mo"`, fechas ISO o timestamps.
+  - **SLA y Vencimiento (`onTimeout`):** Espera por eventos externos (`event: "WEBHOOK_CONFIRMATION"`) con límite opcional de tiempo (`duration`). Si vence el plazo sin recibir el evento, transiciona hacia `onTimeout` (escalado / falla de SLA).
+  - **Callback de Procesamiento (`processEvent(payload, state, ctx)`):** Recibe el `signalPayload` inyectado en `resumeWorkflow`, muta el estado (`ctx.mutate()`) y puede retornar códigos de error `string` para disparar ramas declaradas en `onError`.
+  - **`onSuccess` Implícito en Pasos Inline (`sequence.steps`):** En pipelines de pasos inline, el nodo `{ type: "wait", duration: "24h" }` avanza automáticamente al siguiente sub-paso `#step-i+1` al despertar sin requerir nombres de nodos explícitos.
 - **Inyección de Ejecutor por Contexto (IoC & Scope de Request HTTP / `hardwired`):**
   > [!WARNING]
   > **Advertencia de Arquitectura e Integración IoC:**
