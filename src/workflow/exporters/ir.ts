@@ -10,12 +10,34 @@ export function formatDurationMs(ms?: number): string {
   return `${ms}ms`;
 }
 
+export interface GraphMetadata {
+  title?: string;
+  description?: string;
+  version?: string;
+  author?: string;
+  category?: string;
+  tags?: string[];
+}
+
+export interface NodeMetadata {
+  title?: string;
+  description?: string;
+  service?: string;
+  owner?: string;
+  sideEffects?: string[];
+  [key: string]: any;
+}
+
 export interface IRNode {
   id: string;
   label: string;
   type: string;
   shape: IRShape;
   endResult?: "success" | "error" | "compensate" | "terminate";
+  meta?: NodeMetadata;
+  durationMs?: number;
+  repeatCount?: number | ((state: any) => number);
+  retryMaxAttempts?: number;
 }
 
 export interface IREdge {
@@ -25,7 +47,9 @@ export interface IREdge {
 }
 
 export interface IRGraph {
+  id?: string;
   startNodeId?: string;
+  meta?: GraphMetadata;
   nodes: IRNode[];
   edges: IREdge[];
 }
@@ -63,13 +87,20 @@ export function extractWorkflowIR(
         break;
     }
 
-    irNodes.push({
+    const irNode: IRNode = {
       id: nodeId,
-      label: nodeId,
+      label: rawNode.meta?.title || nodeId,
       type: nodeType,
       shape,
-      endResult,
-    });
+    };
+
+    if (endResult) irNode.endResult = endResult;
+    if (rawNode.meta) irNode.meta = rawNode.meta;
+    if (rawNode.durationMs !== undefined) irNode.durationMs = rawNode.durationMs;
+    if (rawNode.count !== undefined) irNode.repeatCount = rawNode.count;
+    if (rawNode.retry?.maxAttempts !== undefined) irNode.retryMaxAttempts = rawNode.retry.maxAttempts;
+
+    irNodes.push(irNode);
 
     if (nodeType === "action" || nodeType === "sequence") {
       if (rawNode.onSuccess) {
@@ -138,9 +169,13 @@ export function extractWorkflowIR(
     }
   }
 
-  return {
+  const resultIR: IRGraph = {
     startNodeId,
     nodes: irNodes,
     edges: irEdges,
   };
+  if (graph?.id) resultIR.id = graph.id;
+  if ((graph as any)?.meta) resultIR.meta = (graph as any).meta;
+
+  return resultIR;
 }

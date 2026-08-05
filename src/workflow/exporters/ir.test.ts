@@ -37,7 +37,6 @@ test("Workflow - Exporters IR: Extracción de grafo lineal simple", () => {
     label: "start",
     type: "action",
     shape: "box",
-    endResult: undefined,
   });
 
   assert.deepEqual(ir.nodes[1], {
