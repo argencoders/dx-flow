@@ -70,6 +70,8 @@
   En la versión actual de TypeScript, cuando un elemento de un arreglo/tupla (`steps: [...]`) no satisface la firma de retorno esperada en `action` (por ejemplo, al retornar un error no declarado en `onError`), la marca de error estático del compilador se coloca sobre la apertura del objeto del paso `{ type: "action", ... }` en lugar de ubicarse directamente sobre la clave de propiedad `action: (state, ctx) => ...`. Queda anotado en la wishlist investigar refinamientos de tipos o futuras versiones de TypeScript que permitan posicionar quirúrgicamente el error en la sub-propiedad `action`.
 - **Estrategia de Fusión y Manejo de Conflictos en Mutaciones Concurrentes (`parallel`):**
   Analizar patrones avanzados de consolidación de estado (ej. merge profundo de parches, detección estática/dinámica de colisiones de campos o mutadores por slice de estado) cuando ramas concurrentes ejecutan `ctx.mutate()` en paralelo.
+- **Refactorización de Metadatos de Dominio Nativos (Agnósticos del Exportador):**
+  Integrar directamente en la firma de `defineWorkflow().create({...})` metadatos nativos de dominio sin strings por defecto ni datos "mágicos" inventados por los exportadores (`name`, `description`, `version`, `author`, `tags` a nivel de grafo, y `name`, `description`, `service` a nivel de nodo). Se descarta `sideEffects` como propiedad manual obligatoria dado que los efectos secundarios (mutaciones `ctx.mutate()`, transiciones y llamadas a servicios) pueden deducirse o extraerse limpiamente desde la estructura estática del grafo y la traza de runtime del motor.
 - **Inyección de Ejecutor por Contexto (IoC & Scope de Request HTTP / `hardwired`):**
   > [!WARNING]
   > **Advertencia de Arquitectura e Integración IoC:**
