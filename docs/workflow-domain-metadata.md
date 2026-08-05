@@ -211,3 +211,73 @@ export const creditApprovalWorkflow = workflow.create({
   }
 });
 ```
+
+---
+
+## 7. Opción Avanzada y Alternativa: Estructura Organizacional Estática y Cadenas de Mando (`companyOrg as const`)
+
+Como **alternativa opcional**, para proyectos que requieran resolver automáticamente **jerarquías, áreas y superiores directos (`reportsTo`)** sin tener que tipar manualmente uniones de strings ni repetir relaciones en cada nodo, la estructura organizacional de la empresa puede declararse de forma estática como un mapa de cadenas de mando ordenadas `as const`:
+
+### Declaración de la Estructura Organizacional de la Empresa:
+
+```ts
+// Arreglos de tuplas ordenados de mayor a menor jerarquía por área
+export const companyOrg = {
+  "Riesgo Crediticio": ["DirectorRiesgos", "RiskManager", "CreditAnalyst"],
+  "Finanzas":          ["DirectorFinanzas", "FinanceManager", "FinanceAnalyst"],
+  "Logística":         ["VPLogistics", "OperationsManager", "Dispatcher"]
+} as const;
+```
+
+### Inferencia Automática en `defineWorkflow`:
+
+Al pasar `companyOrg` a la factoría, TypeScript deduce automáticamente:
+1. **`TAreas`**: `"Riesgo Crediticio" | "Finanzas" | "Logística"` (`keyof typeof companyOrg`).
+2. **`TRoles`**: `"DirectorRiesgos" | "RiskManager" | "CreditAnalyst" | "DirectorFinanzas" | ...` (todos los roles aplanados).
+
+```ts
+const workflow = defineWorkflow<State, CompanyServices>({
+  org: companyOrg // 🏛️ Inyección de la estructura organizacional estática
+});
+```
+
+### Involucramiento de Personajes (`persona`) en Nodos:
+
+En la declaración del nodo, solo se especifica el personaje y su rol (o el objeto `persona` con nombre e identidad):
+
+```ts
+nodes: {
+  manualReview: workflow.node.action({
+    name: "Revisión Manual de Scoring",
+    
+    // 🎭 Personaje con Rol (Área, ReportsTo y Jerarquía se deducen automáticamente)
+    persona: {
+      name: "María Gómez",
+      role: "CreditAnalyst" // ✅ Autocompletado estático desde companyOrg
+    },
+
+    action: async (state, ctx) => { /* ... */ },
+    onSuccess: "approveBilling"
+  })
+}
+```
+
+### Inferencia Estática en Runtime y Exportadores (`resolveOrgContext`):
+
+Dada la declaración `role: "CreditAnalyst"`, la función helper del motor resuelve de forma determinista y sin duplicación:
+
+```ts
+{
+  area: "Riesgo Crediticio",       // 👈 Encontrado por la clave del mapa
+  role: "CreditAnalyst",           // 👈 Rol declarado
+  reportsTo: "RiskManager",       // 👈 Deducido automáticamente del índice anterior (i - 1)
+  level: 2,                        // 👈 Nivel jerárquico por posición en la tupla
+  chain: ["DirectorRiesgos", "RiskManager", "CreditAnalyst"]
+}
+```
+
+#### Ventajas de esta Alternativa:
+- **Cero Redundancia**: No hay que declarar `area` ni `reportsTo` a mano en cada nodo.
+- **Escalado por SLA Garantizado**: Si un nodo vence por `onTimeout`, el motor sabe exactamente a qué rol escalar (`reportsTo`) de forma 100% tipada.
+- **Interoperabilidad Visual Enriquecida**: BPMN genera los Swimlanes por Área y Sub-lanes por nivel jerárquico automáticamente.
+
