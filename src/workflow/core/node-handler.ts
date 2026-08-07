@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../../core/deep-readonly.js";
+import { DeepReadonly } from "../../core/deep-readonly.types.js";
 import { WorkflowContext } from "./context.js";
 
 /**

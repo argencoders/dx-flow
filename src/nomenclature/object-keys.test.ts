@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect, Equal } from "../core/types-testing.js";
+import { Expect } from "../core/types-testing.js";
 import {
   ValidateObjectKeys,
   StringToAlphabet,
@@ -15,15 +15,12 @@ test("Nomenclatura: Validación atómica de StringToAlphabet", () => {
     type AlfabetoPrueba = StringToAlphabet<"ABC">;
     type UnionEsperada = "A" | "B" | "C";
 
-    type TestOk = Expect<Equal<AlfabetoPrueba, UnionEsperada>, true>;
+    type TestOk = Expect<AlfabetoPrueba, UnionEsperada>;
 
     type AlfabetoUnion = StringToAlphabet<"XY" | "Z">;
     type UnionMultipleEsperada = "X" | "Y" | "Z";
 
-    type TestUnionOk = Expect<
-      Equal<AlfabetoUnion, UnionMultipleEsperada>,
-      true
-    >;
+    type TestUnionOk = Expect<AlfabetoUnion, UnionMultipleEsperada>
   }
 });
 

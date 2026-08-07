@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../../core/deep-readonly.js";
+import { DeepReadonly } from "../../core/deep-readonly.types.js";
 import { createRuntimeContext } from "./context.js";
 import { WorkflowGraph, resolveStartNodeId } from "./factory.js";
 import {

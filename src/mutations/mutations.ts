@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../core/deep-readonly.js";
+import { DeepReadonly } from "../core/deep-readonly.types.js";
 import { KeyStrategy, ValidatorStrategy } from "../nomenclature/object-keys.js";
 import { TypeError } from "../core/types-testing.js";
 

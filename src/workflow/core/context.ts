@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../../core/deep-readonly.js";
+import { DeepReadonly } from "../../core/deep-readonly.types.js";
 
 /**
  * Define la firma del contrato de navegación hacia el siguiente nodo de un workflow.

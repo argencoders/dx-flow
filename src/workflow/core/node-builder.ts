@@ -1,4 +1,4 @@
-import { DeepReadonly } from "../../core/deep-readonly.js";
+import { DeepReadonly } from "../../core/deep-readonly.types.js";
 import { WorkflowContext, SuspendResult } from "./context.js";
 import { InlineStep, RetryPolicy } from "./validator.js";
 import { WorkflowGraph } from "./factory.js";

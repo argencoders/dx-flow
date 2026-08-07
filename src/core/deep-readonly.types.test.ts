@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { DeepReadonly } from "./deep-readonly.js";
+import { DeepReadonly } from "./deep-readonly.types.js";
 
 interface EstadoTest {
   id: string;
