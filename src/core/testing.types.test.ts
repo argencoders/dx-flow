@@ -45,4 +45,5 @@ export type TestSuiteInfraestructuraTipos = TypeSuite<[
       { readonly __type_error__: "❌ ERROR: Formato inválido" }
     >
   >
-]>;
+]>
+
