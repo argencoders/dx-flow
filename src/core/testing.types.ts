@@ -35,4 +35,4 @@ export type TypeError<Message extends string> = {
 /**
  * Contenedor 0-runtime bytes para suites de pruebas estáticas de tipos.
  */
-export type TypeSuite<T extends readonly true[]> = T;
+export type TypeSuite<T extends readonly unknown[]> = T;
