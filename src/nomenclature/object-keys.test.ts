@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../core/testing.types.js";
+import { AssertAssignable } from "../core/testing.types.js";
 import {
   ValidateObjectKeys,
   StringToAlphabet,
@@ -15,12 +15,12 @@ test("Nomenclatura: Validación atómica de StringToAlphabet", () => {
     type AlfabetoPrueba = StringToAlphabet<"ABC">;
     type UnionEsperada = "A" | "B" | "C";
 
-    type TestOk = Expect<AlfabetoPrueba, UnionEsperada>;
+    type TestOk = AssertAssignable<AlfabetoPrueba, UnionEsperada>;
 
     type AlfabetoUnion = StringToAlphabet<"XY" | "Z">;
     type UnionMultipleEsperada = "X" | "Y" | "Z";
 
-    type TestUnionOk = Expect<AlfabetoUnion, UnionMultipleEsperada>
+    type TestUnionOk = AssertAssignable<AlfabetoUnion, UnionMultipleEsperada>
   }
 });
 
@@ -32,13 +32,13 @@ test("Nomenclatura: Validación atómica de IsValidStringByAlphabet", () => {
     type AlfabetoBinario = StringToAlphabet<"01">;
 
     // ✅ REQUISITO: Cadenas compuestas puramente por caracteres del alfabeto dan true
-    type TestBinarioValido = Expect<
+    type TestBinarioValido = AssertAssignable<
       IsValidStringByAlphabet<"101001", AlfabetoBinario>,
       true
     >;
 
     // ❌ REQUISITO: Si se cuela un solo carácter ajeno al alfabeto, da false
-    type TestBinarioInvalido = Expect<
+    type TestBinarioInvalido = AssertAssignable<
       IsValidStringByAlphabet<"1010201", AlfabetoBinario>,
       false
     >;
@@ -57,7 +57,7 @@ test("Nomenclatura: Validación con la estrategia 'default' y 'string'", () => {
       [miSymbol]: boolean;
     }
 
-    type TestDefaultOk = Expect<
+    type TestDefaultOk = AssertAssignable<
       ValidateObjectKeys<EstadoMixto, "default">,
       EstadoMixto
     >;
@@ -66,7 +66,7 @@ test("Nomenclatura: Validación con la estrategia 'default' y 'string'", () => {
       nombre: string;
       correo: string;
     }
-    type TestStringOk = Expect<
+    type TestStringOk = AssertAssignable<
       ValidateObjectKeys<SoloStrings, "string">,
       SoloStrings
     >;
@@ -75,7 +75,7 @@ test("Nomenclatura: Validación con la estrategia 'default' y 'string'", () => {
       id: string;
       1: number;
     }
-    type TestStringFalla = Expect<
+    type TestStringFalla = AssertAssignable<
       ValidateObjectKeys<ConNumero, "string">,
       ERR_NOMENCLATURA_INVALIDA
     >;
@@ -92,7 +92,7 @@ test("Nomenclatura: Validación con la estrategia 'SCREAMING_SNAKE'", () => {
       SET_USER_2: number; // ✅ Ahora los números intermedios son perfectamente válidos
       RESET: boolean;
     }
-    type TestOk = Expect<
+    type TestOk = AssertAssignable<
       ValidateObjectKeys<CasingCorrecto, "SCREAMING_SNAKE">,
       CasingCorrecto
     >;
@@ -109,15 +109,15 @@ test("Nomenclatura: Validación con la estrategia 'SCREAMING_SNAKE'", () => {
       _RESET: string;
     }
 
-    type TestFallaMinuscula = Expect<
+    type TestFallaMinuscula = AssertAssignable<
       ValidateObjectKeys<ConMinuscula, "SCREAMING_SNAKE">,
       ERR_NOMENCLATURA_INVALIDA
     >;
-    type TestFallaEspacio = Expect<
+    type TestFallaEspacio = AssertAssignable<
       ValidateObjectKeys<ConEspacio, "SCREAMING_SNAKE">,
       ERR_NOMENCLATURA_INVALIDA
     >;
-    type TestFallaHuerfano = Expect<
+    type TestFallaHuerfano = AssertAssignable<
       ValidateObjectKeys<ConGuionBajoHuerfano, "SCREAMING_SNAKE">,
       ERR_NOMENCLATURA_INVALIDA
     >;
@@ -151,13 +151,13 @@ test("Nomenclatura: Validación mediante Extensión de Interfaz (SOLO_ABC)", () 
     }
 
     // ✅ REQUISITO: La nueva estrategia inyectada figura de forma nativa en las opciones y valida con éxito
-    type TestOk = Expect<
+    type TestOk = AssertAssignable<
       ValidateObjectKeys<ObjetoValido, "SOLO_ABC">,
       ObjetoValido
     >;
 
     // ❌ REQUISITO: El motor procesa la nueva extensión y colapsa correctamente si se viola la regla
-    type TestFalla = Expect<
+    type TestFalla = AssertAssignable<
       ValidateObjectKeys<ObjetoInvalido, "SOLO_ABC">,
       ERR_NOMENCLATURA_INVALIDA
     >;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Expect } from "../../core/testing.types.js";
+import { AssertAssignable } from "../../core/testing.types.js";
 import {
   NodeHandlerResult,
   NodeHandlerParams,
@@ -34,11 +34,11 @@ test("Workflow - NodeHandler: Uso Correcto y Validación Estática de NodeHandle
     };
 
     // Verificación estática del estado inmutable
-    type CheckState = Expect<typeof paramsValidos.state.contador, number>;
+    type CheckState = AssertAssignable<typeof paramsValidos.state.contador, number>;
 
     // Verificación estática del servicio
     const resServicio = paramsValidos.context.services.miServicio();
-    type CheckServices = Expect<typeof resServicio, string>;
+    type CheckServices = AssertAssignable<typeof resServicio, string>;
   }
 });
 

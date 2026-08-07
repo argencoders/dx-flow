@@ -1,58 +1,48 @@
-import { test } from "node:test";
-import { Equal, Expect, TypeError } from "./testing.types.js";
+import type {
+  Equal,
+  Expect,
+  AssertAssignable,
+  TypeError,
+  TypeSuite,
+} from "./testing.types.js";
 
-test("Infraestructura de Testing: Validación de Equal y Expect", () => {
-  // Bloque estático: No se ejecuta en runtime, se valida en compilación (tsc)
+/**
+ * SUITE DE PRUEBAS DE TIPOS (0 Bytes Runtime, 0 Warnings ts(6133))
+ * Se valida directamente mediante `npx tsc --noEmit` o la IDE.
+ */
+export type TestSuiteInfraestructuraTipos = TypeSuite<[
+  // ===================================================================
+  // 1. DUALIDAD: Identidad Estricta (Equal) vs Asignabilidad (AssertAssignable)
+  // ===================================================================
 
-  function testFlujosPositivos() {
-    // Caso A: Primitivos idénticos (Usando tu nuevo formato explícito)
-    type CasoPrimitivo = Expect<Equal<string, string>, true>;
+  // ✅ Igualdad Estricta: Ambas estructuras son idénticas en mutabilidad
+  Expect<Equal<{ readonly id: number }, { readonly id: number }>>,
 
-    // Caso B: Estructuras de objetos idénticas
-    type CasoObjeto = Expect<Equal<{ id: number }, { id: number }>, true>;
+  // ✅ Asignabilidad: Mutable ES asignable a Readonly (Subtipado permitido)
+  Expect<AssertAssignable<{ id: number }, { readonly id: number }>>,
 
-    // Caso C: Respeto a modificadores opcionales idénticos
-    type CasoOpcional = Expect<
-      Equal<{ token?: string }, { token?: string }>,
-      true
-    >;
-  }
+  // ✅ Captura de Falso Positivo: Equal DETECTA la diferencia de 'readonly' donde AssertAssignable no
+  Expect<Equal<Equal<{ id: number }, { readonly id: number }>, false>>,
 
-  function testFlujosNegativos() {
-    // Caso D: Diferenciar tipos distintos (Debe retornar false)
-    type ErrorTiposDistintos = Expect<Equal<string, number>, false>;
+  // ===================================================================
+  // 2. PRUEBAS DE OPCIONALIDAD Y ESTRUCTURA
+  // ===================================================================
 
-    // Caso E: Estricto con el modificador Readonly
-    type ErrorReadonly = Expect<
-      Equal<{ id: number }, { readonly id: number }>,
-      false
-    >;
+  // ✅ Identidad de opcionales
+  Expect<Equal<{ token?: string }, { token?: string }>>,
 
-    // Caso F: Estricto con la opcionalidad implícita vs explícita (¡CORREGIDO!)
-    // Ahora, gracias a la remoción homórfica, el tipo de abajo da false de verdad.
-    type ErrorOpcionalidad = Expect<
-      Equal<{ a?: string }, { a: string | undefined }>,
-      false
-    >;
-  }
-});
+  // ✅ Opcionalidad explícita vs implícita (retorna false en Equal)
+  Expect<Equal<Equal<{ a?: string }, { a: string | undefined }>, false>>,
 
-test("Infraestructura de Testing: Validación de TypeError", () => {
-  function testValidacionTokens() {
-    type MiMensaje = "❌ ERROR: Formato inválido";
-    type ErrorInstanciado = TypeError<MiMensaje>;
+  // ===================================================================
+  // 3. PRUEBA DE TypeError (DX & Hover Tooltip a 0-runtime bytes)
+  // ===================================================================
 
-    // Verificamos que el token conserve el mensaje exacto en su firma estructural
-    type TestEstructura = Expect<
-      Equal<
-        ErrorInstanciado,
-        { readonly __type_error__: "❌ ERROR: Formato inválido" }
-      >,
-      true
-    >;
-
-    // Un objeto común no es asignable al token de error, provocando una falla limpia en @ts-expect-error
-    // @ts-expect-error - El tipo intenta validar que no cualquier estructura pase por un TypeError
-    const dispararAlerta: ErrorInstanciado = { algo: "distinto" };
-  }
-});
+  // ✅ Verificación de estructura del token de error (Sin usar 'const' ni generar ts(6133))
+  Expect<
+    Equal<
+      TypeError<"❌ ERROR: Formato inválido">,
+      { readonly __type_error__: "❌ ERROR: Formato inválido" }
+    >
+  >
+]>;

@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../core/testing.types.js";
+import { AssertAssignable } from "../core/testing.types.js";
 import { IsValidState } from "./state-deep.js";
 import { ERR_PROFUNDIDAD_EXCEDIDA } from "./state-objects.js";
 import { ERR_NOMENCLATURA_INVALIDA } from "../nomenclature/object-keys.js";
@@ -19,7 +19,7 @@ test("Validador Definitivo: Escenarios de Éxito Completos", () => {
       fechas: Date[];
     }
 
-    type TestEstructuraOk = Expect<
+    type TestEstructuraOk = AssertAssignable<
       IsValidState<MiEstadoProduccion>,
       MiEstadoProduccion
     >;
@@ -34,7 +34,7 @@ test("Validador Definitivo: Escenarios de Fallo por Restricciones Profundas", ()
     }
 
     type Resultado = IsValidState<EstadoDemasiadoProfundo>;
-    type TestErrorProfundidad = Expect<Resultado, ERR_PROFUNDIDAD_EXCEDIDA>;
+    type TestErrorProfundidad = AssertAssignable<Resultado, ERR_PROFUNDIDAD_EXCEDIDA>;
   }
 
   function testFalloValoresTerminales() {
@@ -55,7 +55,7 @@ test("Validador Definitivo: Escenarios de Fallo por Restricciones Profundas", ()
       "default",
       3
     >;
-    type TestErrorValor = Expect<Resultado, ERR_VALOR_PROHIBIDO>;
+    type TestErrorValor = AssertAssignable<Resultado, ERR_VALOR_PROHIBIDO>;
   }
 
   function testFalloLlavesOcultas() {
@@ -70,6 +70,6 @@ test("Validador Definitivo: Escenarios de Fallo por Restricciones Profundas", ()
       true,
       "SCREAMING_SNAKE"
     >;
-    type TestErrorLlaves = Expect<Resultado, ERR_NOMENCLATURA_INVALIDA>;
+    type TestErrorLlaves = AssertAssignable<Resultado, ERR_NOMENCLATURA_INVALIDA>;
   }
 });

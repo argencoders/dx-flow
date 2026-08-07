@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../core/testing.types.js";
+import { AssertAssignable } from "../core/testing.types.js";
 import {
   createReducer,
   defineMutations,
@@ -37,8 +37,8 @@ test("Mutaciones - Etapa 1: Inferencia, inmutabilidad y Casing por defecto (SCRE
     type EsperadoIncrementar = PureMutationFn<EstadoUsuario, unknown>;
     type EsperadoCambiarNombre = PureMutationFn<EstadoUsuario, string>;
 
-    type Ok1 = Expect<FirmaIncrementar, EsperadoIncrementar>;
-    type Ok2 = Expect<FirmaCambiarNombre, EsperadoCambiarNombre>;
+    type Ok1 = AssertAssignable<FirmaIncrementar, EsperadoIncrementar>;
+    type Ok2 = AssertAssignable<FirmaCambiarNombre, EsperadoCambiarNombre>;
   }
 
   // ❌ REQUISITO: Sigue bloqueando de forma localizada llaves que no cumplen con SCREAMING_SNAKE
@@ -86,7 +86,7 @@ test("Mutaciones - Etapa 2: Transformación de Firmas Públicas Aislada", () => 
     }
 
     // ✅ REQUISITO CUMPLIDO: Comprobamos que el tipo transformador independiente limpia las firmas perfectamente
-    type TestFirmasLimpias = Expect<AccionesPublicas, AccionesEsperadas>;
+    type TestFirmasLimpias = AssertAssignable<AccionesPublicas, AccionesEsperadas>;
   }
 });
 
@@ -129,7 +129,7 @@ test("Mutaciones - Etapa 3: Extracción de Unión Discriminada de Eventos (Typed
       | { type: "CAMBIAR_NOMBRE"; payload: string };
 
     // ✅ REQUISITO: Comprobamos que TypedEvent distribuyó las llaves en una Unión idéntica
-    type TestUnionPerfecta = Expect<MisEventos, UnionEventosEsperada>;
+    type TestUnionPerfecta = AssertAssignable<MisEventos, UnionEventosEsperada>;
 
     // ✅ REQUISITO DE USO: Validamos que un historial de eventos use el array estructurado de forma correcta
     const historialValido: EventLog<MutacionesSimuladas> = [

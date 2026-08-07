@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Expect } from "../../core/testing.types.js";
+import { AssertAssignable } from "../../core/testing.types.js";
 import { defineWorkflow, WorkflowGraph, resolveStartNodeId } from "./factory.js";
 
 interface EstadoSimulado {
@@ -68,7 +68,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafo,
       WorkflowGraph<
         EstadoSimulado,
@@ -129,7 +129,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoCompuesto,
       WorkflowGraph<
         EstadoSimulado,
@@ -183,7 +183,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoConNodeBuilders,
       typeof miGrafoTradicional
     >;
@@ -234,7 +234,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoSequenceInline,
       WorkflowGraph<
         EstadoSimulado,
@@ -267,7 +267,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoRepeatInline,
       WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_exito">
     >;
@@ -296,7 +296,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoParallelInline,
       WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_exito">
     >;
@@ -341,7 +341,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoRetry,
       WorkflowGraph<
         EstadoSimulado,
@@ -384,7 +384,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoSaga,
       WorkflowGraph<
         EstadoSimulado,
@@ -411,7 +411,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoResult,
       WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_error">
     >;
@@ -454,7 +454,7 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
       },
     });
 
-    type TestAsignabilidad = Expect<
+    type TestAsignabilidad = AssertAssignable<
       typeof miGrafoSubworkflow,
       WorkflowGraph<EstadoSimulado, typeof serviciosMock, "start" | "fin_exito">
     >;

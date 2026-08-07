@@ -1,7 +1,6 @@
 /**
- * Comprueba de forma ultra-estricta si dos tipos son exactamente idénticos.
- * Valida la estructura global, modificadores de solo lectura y remueve de forma homórfica
- * la opcionalidad para forzar una diferencia entre claves opcionales y uniones '| undefined'.
+ * Comprueba de forma ultra-estricta si dos tipos son exactamente idénticos
+ * (mismo grafo de tipos, modificadores readonly y opcionalidades).
  */
 export type Equal<X, Y> =
   (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -13,9 +12,17 @@ export type Equal<X, Y> =
     : false;
 
 /**
- * Fuerza a que el argumento genérico sea estrictamente del tipo esperado
+ * Valida que una aserción evalúe estrictamente a 'true'.
  */
-export type Expect<T extends expected, expected> = T;
+export type Expect<T extends true> = T;
+
+/**
+ * Valida asignabilidad relacional (subtipado Actual <= Expected).
+ * Retorna 'true' si Actual es asignable a Expected, o 'false' en caso contrario.
+ */
+export type AssertAssignable<Actual, Expected> = Actual extends Expected
+  ? true
+  : false;
 
 /**
  * Encapsula un mensaje de error legible por humanos e IA dentro del sistema de tipos.
@@ -24,3 +31,8 @@ export type Expect<T extends expected, expected> = T;
 export type TypeError<Message extends string> = {
   readonly __type_error__: Message;
 };
+
+/**
+ * Contenedor 0-runtime bytes para suites de pruebas estáticas de tipos.
+ */
+export type TypeSuite<T extends readonly true[]> = T;

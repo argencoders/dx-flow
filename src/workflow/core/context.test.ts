@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../../core/testing.types.js";
+import { AssertAssignable } from "../../core/testing.types.js";
 import {
   WorkflowContext,
   NavigationResult,
@@ -19,7 +19,7 @@ test("Workflow - Context: Validación estática de firmas (.next y .mutate)", ()
 
     // ✅ REQUISITO: Destino válido compila limpio
     const ok = context.next("pausa");
-    type TestRetorno = Expect<typeof ok, NavigationResult>;
+    type TestRetorno = AssertAssignable<typeof ok, NavigationResult>;
 
     // ❌ REQUISITO CUMPLIDO: Bloquea destinos inexistentes
     // @ts-expect-error

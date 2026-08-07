@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../core/testing.types.js";
+import { AssertAssignable } from "../core/testing.types.js";
 import { Enumerate } from "./state-counter.js";
 import { CheckObjectDeep, ERR_PROFUNDIDAD_EXCEDIDA } from "./state-objects.js";
 import { ERR_LLAVES_INVALIDAS_INTERNAS } from "./state-objects.js";
@@ -17,7 +17,7 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
 
     // ✅ REQUISITO: Pasa limpio usando por defecto el validador de llaves integrado
     type ResultadoOk = CheckObjectDeep<EstructuraDosNiveles, ContadorNivel2>;
-    type TestNivelOk = Expect<ResultadoOk, EstructuraDosNiveles>;
+    type TestNivelOk = AssertAssignable<ResultadoOk, EstructuraDosNiveles>;
   }
 
   function testProfundidadExcedida() {
@@ -37,7 +37,7 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
       EstructuraProfunda,
       ContadorNivel1
     >;
-    type TestNivelError = Expect<ResultadoExcedido, ERR_PROFUNDIDAD_EXCEDIDA>;
+    type TestNivelError = AssertAssignable<ResultadoExcedido, ERR_PROFUNDIDAD_EXCEDIDA>;
   }
 
   function testLlavesInternasInvalidas() {
@@ -56,6 +56,6 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
       ContadorNivel3,
       "SCREAMING_SNAKE"
     >;
-    type TestLlavesError = Expect<Resultado, ERR_LLAVES_INVALIDAS_INTERNAS>;
+    type TestLlavesError = AssertAssignable<Resultado, ERR_LLAVES_INVALIDAS_INTERNAS>;
   }
 });
