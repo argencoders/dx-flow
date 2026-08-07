@@ -1,18 +1,26 @@
 {
-  // Formateo y correcciones automáticas al guardar (Ctrl + S)
+  // 1. Asigna PRETTIER como el formateador predeterminado explícito
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // 2. Ejecuta Prettier automáticamente al guardar (Ctrl + S)
   "editor.formatOnSave": true,
+
+  // 3. Ejecuta auto-correcciones de ESLint al guardar (Ctrl + S)
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
 
-  // Validación de ESLint en tiempo real para TypeScript
-  "eslint.validate": [
-    "javascript",
-    "typescript"
-  ],
+  // 4. Validación en tiempo real de ESLint (Flat Config)
+  "eslint.validate": ["javascript", "typescript"],
   "eslint.useFlatConfig": true,
 
-  // Fuerza a la IDE a usar el TypeScript del node_modules del proyecto
+  // 5. Versión unificada de TypeScript (del node_modules del proyecto)
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true
 }
