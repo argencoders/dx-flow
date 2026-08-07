@@ -40,7 +40,10 @@ test("Validador Superficial: Flujos Negativos y Mensajes de Error", () => {
 
     // ❌ REQUISITO: Funciones raíz deben gatillar el mismo error
     type ResultadoFuncion = CheckStateShallow<() => void, string, any, true>;
-    type TestErrorFuncion = AssertAssignable<ResultadoFuncion, ERR_RAIZ_DEBE_SER_OBJETO>;
+    type TestErrorFuncion = AssertAssignable<
+      ResultadoFuncion,
+      ERR_RAIZ_DEBE_SER_OBJETO
+    >;
   }
 
   function testErroresConfiguracion() {
@@ -71,6 +74,9 @@ test("Validador Superficial: Flujos Negativos y Mensajes de Error", () => {
       any,
       true
     >;
-    type TestErrorLlaves = AssertAssignable<ResultadoLlaves, ERR_LLAVES_INVALIDAS>;
+    type TestErrorLlaves = AssertAssignable<
+      ResultadoLlaves,
+      ERR_LLAVES_INVALIDAS
+    >;
   }
 });

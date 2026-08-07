@@ -37,7 +37,10 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
       EstructuraProfunda,
       ContadorNivel1
     >;
-    type TestNivelError = AssertAssignable<ResultadoExcedido, ERR_PROFUNDIDAD_EXCEDIDA>;
+    type TestNivelError = AssertAssignable<
+      ResultadoExcedido,
+      ERR_PROFUNDIDAD_EXCEDIDA
+    >;
   }
 
   function testLlavesInternasInvalidas() {
@@ -56,6 +59,9 @@ test("Profundidad: Validación atómica de Recorredor de Objetos Anidados", () =
       ContadorNivel3,
       "SCREAMING_SNAKE"
     >;
-    type TestLlavesError = AssertAssignable<Resultado, ERR_LLAVES_INVALIDAS_INTERNAS>;
+    type TestLlavesError = AssertAssignable<
+      Resultado,
+      ERR_LLAVES_INVALIDAS_INTERNAS
+    >;
   }
 });

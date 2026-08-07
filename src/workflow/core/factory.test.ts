@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AssertAssignable } from "../../core/testing.types.js";
-import { defineWorkflow, WorkflowGraph, resolveStartNodeId } from "./factory.js";
+import {
+  defineWorkflow,
+  WorkflowGraph,
+  resolveStartNodeId,
+} from "./factory.js";
 
 interface EstadoSimulado {
   intentos: number;
@@ -145,7 +149,10 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
   }
 
   function testNodeBuilderSintaxisLimpia() {
-    const { node, create } = defineWorkflow<EstadoSimulado, typeof serviciosMock>();
+    const { node, create } = defineWorkflow<
+      EstadoSimulado,
+      typeof serviciosMock
+    >();
 
     const miGrafoTradicional = create({
       id: "flujo_demostracion",
@@ -438,7 +445,11 @@ test("Workflow - Factory: Escenarios de Éxito e Inferencia de Grafos Multinodo"
         start: {
           type: "subworkflow",
           workflow: subGrafo,
-          input: (state) => ({ intentos: state.intentos, nombre: state.nombre, esVip: state.esVip }),
+          input: (state) => ({
+            intentos: state.intentos,
+            nombre: state.nombre,
+            esVip: state.esVip,
+          }),
           output: (ctx, subState) => {
             ctx.mutate({ intentos: subState.intentos });
           },
@@ -697,7 +708,10 @@ test("Workflow - Factory: Inferencia del nodo inicial (resolveStartNodeId)", () 
     start: { type: "action" },
     nodo_custom: { type: "end" },
   };
-  assert.equal(resolveStartNodeId(nodesMultinodo, "nodo_custom"), "nodo_custom");
+  assert.equal(
+    resolveStartNodeId(nodesMultinodo, "nodo_custom"),
+    "nodo_custom",
+  );
 
   // 3. Prioridad por Clave 'start': Selecciona 'start' si no hay un explicitStartNodeId
   assert.equal(resolveStartNodeId(nodesMultinodo), "start");
@@ -709,4 +723,3 @@ test("Workflow - Factory: Inferencia del nodo inicial (resolveStartNodeId)", () 
   };
   assert.equal(resolveStartNodeId(nodesSinStartKey), "primer_paso");
 });
-

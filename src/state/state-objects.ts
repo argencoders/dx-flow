@@ -1,4 +1,4 @@
-import { TypeError } from "../core/testing.types.js";
+import { TypeError } from "../core/errors.types.js";
 import { IsPlainObject } from "./state-discriminators.js";
 import { Decrement } from "./state-counter.js";
 import {

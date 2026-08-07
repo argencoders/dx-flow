@@ -20,7 +20,7 @@ test("Nomenclatura: Validación atómica de StringToAlphabet", () => {
     type AlfabetoUnion = StringToAlphabet<"XY" | "Z">;
     type UnionMultipleEsperada = "X" | "Y" | "Z";
 
-    type TestUnionOk = AssertAssignable<AlfabetoUnion, UnionMultipleEsperada>
+    type TestUnionOk = AssertAssignable<AlfabetoUnion, UnionMultipleEsperada>;
   }
 });
 

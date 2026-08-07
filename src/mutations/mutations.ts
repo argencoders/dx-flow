@@ -1,6 +1,6 @@
 import { DeepReadonly } from "../core/deep-readonly.types.js";
 import { KeyStrategy, ValidatorStrategy } from "../nomenclature/object-keys.js";
-import { TypeError } from "../core/testing.types.js";
+import { TypeError } from "../core/errors.types.js";
 
 // Firma base mutable que se le expondrá al Reducer/Replay externo
 export type PureMutationFn<S, Payload> = (

@@ -34,7 +34,10 @@ test("Workflow - NodeHandler: Uso Correcto y Validación Estática de NodeHandle
     };
 
     // Verificación estática del estado inmutable
-    type CheckState = AssertAssignable<typeof paramsValidos.state.contador, number>;
+    type CheckState = AssertAssignable<
+      typeof paramsValidos.state.contador,
+      number
+    >;
 
     // Verificación estática del servicio
     const resServicio = paramsValidos.context.services.miServicio();
@@ -115,7 +118,10 @@ test("Workflow - NodeHandler: Estructura de NodeHandlersMap y Ejecución Atómic
   };
 
   const map: NodeHandlersMap<EstadoTest, ServicesTest, NodosTest> = {
-    custom: async ({ state, context }: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest>) => {
+    custom: async ({
+      state,
+      context,
+    }: NodeHandlerParams<EstadoTest, ServicesTest, NodosTest>) => {
       const info = context.services.miServicio();
       context.mutate({ contador: state.contador + (info === "OK" ? 10 : 0) });
       return { type: "NEXT", target: "nodo_b" };

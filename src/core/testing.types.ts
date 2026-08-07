@@ -25,14 +25,6 @@ export type AssertAssignable<Actual, Expected> = Actual extends Expected
   : false;
 
 /**
- * Encapsula un mensaje de error legible por humanos e IA dentro del sistema de tipos.
- * Se utiliza para reemplazar 'never' por un token de error explícito.
- */
-export type TypeError<Message extends string> = {
-  readonly __type_error__: Message;
-};
-
-/**
  * Contenedor 0-runtime bytes para suites de pruebas estáticas de tipos.
  */
 export type TypeSuite<T extends readonly unknown[]> = T;

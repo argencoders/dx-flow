@@ -1,5 +1,6 @@
 import { test } from "node:test";
-import { AssertAssignable, TypeError } from "../core/testing.types.js";
+import { AssertAssignable } from "../core/testing.types.js";
+import { TypeError } from "../core/errors.types.js";
 import { CheckNativeLeaf } from "./state-natives.js";
 
 type ERR_VALOR_PROHIBIDO =
@@ -20,7 +21,10 @@ test("Profundidad: Validación atómica de Hojas Nativas", () => {
 
     // ❌ REQUISITO: El validador debe detectar que Date no pertenece al criterio y devolver el token
     type ResultadoDateProhibido = CheckNativeLeaf<Date, SoloStringsYNumeros>;
-    type TestDateCustom = AssertAssignable<ResultadoDateProhibido, ERR_VALOR_PROHIBIDO>;
+    type TestDateCustom = AssertAssignable<
+      ResultadoDateProhibido,
+      ERR_VALOR_PROHIBIDO
+    >;
 
     // ✅ REQUISITO: Un string bajo este mismo criterio personalizado debe seguir pasando limpio
     type ResultadoStringCustom = CheckNativeLeaf<string, SoloStringsYNumeros>;

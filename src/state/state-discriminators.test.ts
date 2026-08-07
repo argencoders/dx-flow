@@ -46,7 +46,10 @@ test("Discriminadores: Validación atómica de IsPlainArray", () => {
 
     // ✅ REQUISITO: Los arreglos mutables e inmutables deben resolver a true de forma explícita
     type TestArray = AssertAssignable<IsPlainArray<ListaStrings>, true>;
-    type TestArrayReadonly = AssertAssignable<IsPlainArray<ListaNumerosReadonly>, true>;
+    type TestArrayReadonly = AssertAssignable<
+      IsPlainArray<ListaNumerosReadonly>,
+      true
+    >;
   }
 
   function testFlujosNegativos() {
@@ -97,7 +100,10 @@ test("Discriminadores: Validación atómica de ValidateKeys", () => {
     }
 
     // ❌ REQUISITO: Debe rechazar si contiene llaves de tipo Symbol bajo el criterio por defecto (string)
-    type TestFallaSymbol = AssertAssignable<ValidateKeys<EstructuraConSymbol>, false>;
+    type TestFallaSymbol = AssertAssignable<
+      ValidateKeys<EstructuraConSymbol>,
+      false
+    >;
 
     // ❌ REQUISITO: Debe rechazar llaves numéricas si el criterio exige estrictamente cadenas (string)
     type TestFallaNumeros = AssertAssignable<

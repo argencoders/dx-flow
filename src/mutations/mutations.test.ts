@@ -86,7 +86,10 @@ test("Mutaciones - Etapa 2: Transformación de Firmas Públicas Aislada", () => 
     }
 
     // ✅ REQUISITO CUMPLIDO: Comprobamos que el tipo transformador independiente limpia las firmas perfectamente
-    type TestFirmasLimpias = AssertAssignable<AccionesPublicas, AccionesEsperadas>;
+    type TestFirmasLimpias = AssertAssignable<
+      AccionesPublicas,
+      AccionesEsperadas
+    >;
   }
 });
 
