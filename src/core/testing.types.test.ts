@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Equal, Expect, TypeError } from "./types-testing.js";
+import { Equal, Expect, TypeError } from "./testing.types.js";
 
 test("Infraestructura de Testing: Validación de Equal y Expect", () => {
   // Bloque estático: No se ejecuta en runtime, se valida en compilación (tsc)

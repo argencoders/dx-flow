@@ -1,4 +1,4 @@
-import { TypeError } from "../core/types-testing.js";
+import { TypeError } from "../core/testing.types.js";
 
 export type ERR_NOMENCLATURA_INVALIDA =
   TypeError<"❌ ERROR: Las llaves del objeto no cumplen con el formato de convención requerido.">;

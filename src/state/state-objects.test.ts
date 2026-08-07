@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { Expect } from "../core/types-testing.js";
+import { Expect } from "../core/testing.types.js";
 import { Enumerate } from "./state-counter.js";
 import { CheckObjectDeep, ERR_PROFUNDIDAD_EXCEDIDA } from "./state-objects.js";
 import { ERR_LLAVES_INVALIDAS_INTERNAS } from "./state-objects.js";

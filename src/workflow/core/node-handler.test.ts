@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Expect } from "../../core/types-testing.js";
+import { Expect } from "../../core/testing.types.js";
 import {
   NodeHandlerResult,
   NodeHandlerParams,
