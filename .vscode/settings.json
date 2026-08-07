@@ -1,0 +1,18 @@
+{
+  // Formateo y correcciones automáticas al guardar (Ctrl + S)
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Validación de ESLint en tiempo real para TypeScript
+  "eslint.validate": [
+    "javascript",
+    "typescript"
+  ],
+  "eslint.useFlatConfig": true,
+
+  // Fuerza a la IDE a usar el TypeScript del node_modules del proyecto
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
