@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { AssertAssignable } from "../../core/testing.types.js";
+import { ExpectEqual } from "../../core/testing.types.js";
 import { defineWorkflow } from "./factory.js";
 
 type NodosExistentes = "start" | "intentar_pago" | "fin_exito";
@@ -45,7 +45,7 @@ test("Workflow - Validator: Extensibilidad de fisonomías (Nodo Webhook)", () =>
       },
     });
 
-    type TestOk = AssertAssignable<typeof miGrafo, typeof miGrafo>;
+    type TestOk = ExpectEqual<typeof miGrafo, typeof miGrafo>;
   }
 
   function testNodoInyectadoRoto() {

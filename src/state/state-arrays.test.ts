@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { AssertAssignable } from "../core/testing.types.js";
+import { ExpectEqual } from "../core/testing.types.js";
 import { TypeError } from "../core/errors.types.js";
 import { CheckArrayLeaf } from "./state-arrays.js";
 
@@ -12,11 +12,8 @@ test("Profundidad: Validación atómica de Recorredor de Arrays", () => {
     type ListaReadonly = readonly number[];
 
     // ✅ REQUISITO: Bajo condiciones normales, los arrays puros de primitivos válidos deben pasar intactos
-    type TestArrayOk = AssertAssignable<
-      CheckArrayLeaf<ListaNormal>,
-      ListaNormal
-    >;
-    type TestArrayReadonlyOk = AssertAssignable<
+    type TestArrayOk = ExpectEqual<CheckArrayLeaf<ListaNormal>, ListaNormal>;
+    type TestArrayReadonlyOk = ExpectEqual<
       CheckArrayLeaf<ListaReadonly>,
       ListaReadonly
     >;
@@ -27,7 +24,7 @@ test("Profundidad: Validación atómica de Recorredor de Arrays", () => {
 
     // ❌ REQUISITO: Si AllowArrays es false, cualquier array debe retornar el token de error
     type ResultadoProhibido = CheckArrayLeaf<ListaNormal, any, false>;
-    type TestArraysBloqueados = AssertAssignable<
+    type TestArraysBloqueados = ExpectEqual<
       ResultadoProhibido,
       ERR_VALOR_PROHIBIDO
     >;
@@ -44,7 +41,7 @@ test("Profundidad: Validación atómica de Recorredor de Arrays", () => {
       SoloNumeros,
       true
     >;
-    type TestElementosBloqueados = AssertAssignable<
+    type TestElementosBloqueados = ExpectEqual<
       ResultadoElementosIlegales,
       ERR_VALOR_PROHIBIDO
     >;

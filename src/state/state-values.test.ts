@@ -1,23 +1,23 @@
 import { test } from "node:test";
-import { AssertAssignable } from "../core/testing.types.js";
+import { ExpectEqual } from "../core/testing.types.js";
 import { DefaultStateValue, ExcludeFromValue } from "./state-values.js";
 
 test("Ecosistema de Datos: Validación de DefaultStateValue", () => {
   function testTiposPermitidos() {
     // Verificamos de forma estricta que los tipos nativos estructurales pertenezcan a la lista blanca
-    type TestDate = AssertAssignable<
+    type TestDate = ExpectEqual<
       Date extends DefaultStateValue ? true : false,
       true
     >;
-    type TestRegExp = AssertAssignable<
+    type TestRegExp = ExpectEqual<
       RegExp extends DefaultStateValue ? true : false,
       true
     >;
-    type TestMap = AssertAssignable<
+    type TestMap = ExpectEqual<
       Map<any, any> extends DefaultStateValue ? true : false,
       true
     >;
-    type TestSet = AssertAssignable<
+    type TestSet = ExpectEqual<
       Set<any> extends DefaultStateValue ? true : false,
       true
     >;
@@ -25,11 +25,11 @@ test("Ecosistema de Datos: Validación de DefaultStateValue", () => {
 
   function testTiposProhibidosPorOmision() {
     // Las funciones y los símbolos NO deben formar parte de los valores permitidos por defecto
-    type TestFuncion = AssertAssignable<
+    type TestFuncion = ExpectEqual<
       ((...args: any[]) => any) extends DefaultStateValue ? true : false,
       false
     >;
-    type TestSymbol = AssertAssignable<
+    type TestSymbol = ExpectEqual<
       symbol extends DefaultStateValue ? true : false,
       false
     >;
@@ -45,23 +45,23 @@ test("Ecosistema de Datos: Validación de ExcludeFromValue", () => {
     >;
 
     // Verificamos que los tipos primitivos sigan existiendo intactos
-    type SigueString = AssertAssignable<
+    type SigueString = ExpectEqual<
       string extends MisValoresPermitidos ? true : false,
       true
     >;
 
     // 🎯 REQUISITO CLAVE: Verificamos de forma atómica que Date y RegExp ahora sean RECHAZADOS (false)
-    type DateExcluido = AssertAssignable<
+    type DateExcluido = ExpectEqual<
       Date extends MisValoresPermitidos ? true : false,
       false
     >;
-    type RegExpExcluido = AssertAssignable<
+    type RegExpExcluido = ExpectEqual<
       RegExp extends MisValoresPermitidos ? true : false,
       false
     >;
 
     // Verificamos que Map y Set sigan estando permitidos porque no fueron excluidos
-    type MapSiguePermitido = AssertAssignable<
+    type MapSiguePermitido = ExpectEqual<
       Map<any, any> extends MisValoresPermitidos ? true : false,
       true
     >;

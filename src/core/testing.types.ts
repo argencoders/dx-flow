@@ -25,6 +25,12 @@ export type AssertAssignable<Actual, Expected> = Actual extends Expected
   : false;
 
 /**
+ * Aserción estricta de igualdad de tipos (0-runtime bytes).
+ * Compara X e Y isomórficamente exigiendo coincidencia exacta en mutabilidad y opcionalidad.
+ */
+export type ExpectEqual<X, Y> = Equal<X, Y> extends true ? true : false;
+
+/**
  * Contenedor 0-runtime bytes para suites de pruebas estáticas de tipos.
  */
 export type TypeSuite<T extends readonly unknown[]> = T;

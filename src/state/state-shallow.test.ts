@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { AssertAssignable } from "../core/testing.types.js";
+import { ExpectEqual } from "../core/testing.types.js";
 import {
   CheckStateShallow,
   ERR_RAIZ_DEBE_SER_OBJETO,
@@ -16,13 +16,13 @@ test("Validador Superficial: Flujos Positivos en Nivel 1", () => {
     type ListaTags = string[];
 
     // ✅ REQUISITO: Un objeto con llaves string bajo criterios comunes debe retornar el mismo tipo
-    type TestObjetoOk = AssertAssignable<
+    type TestObjetoOk = ExpectEqual<
       CheckStateShallow<EstadoNormal, string, any, true>,
       EstadoNormal
     >;
 
     // ✅ REQUISITO: Un array raíz debe retornar el mismo tipo si AllowArrays es true
-    type TestArrayOk = AssertAssignable<
+    type TestArrayOk = ExpectEqual<
       CheckStateShallow<ListaTags, string, any, true>,
       ListaTags
     >;
@@ -33,14 +33,14 @@ test("Validador Superficial: Flujos Negativos y Mensajes de Error", () => {
   function testErroresDeRaiz() {
     // ❌ REQUISITO: Primitivos sueltos deben gatillar el error de objeto plano
     type ResultadoPrimitivo = CheckStateShallow<string, string, any, true>;
-    type TestErrorPrimitivo = AssertAssignable<
+    type TestErrorPrimitivo = ExpectEqual<
       ResultadoPrimitivo,
       ERR_RAIZ_DEBE_SER_OBJETO
     >;
 
     // ❌ REQUISITO: Funciones raíz deben gatillar el mismo error
     type ResultadoFuncion = CheckStateShallow<() => void, string, any, true>;
-    type TestErrorFuncion = AssertAssignable<
+    type TestErrorFuncion = ExpectEqual<
       ResultadoFuncion,
       ERR_RAIZ_DEBE_SER_OBJETO
     >;
@@ -54,7 +54,7 @@ test("Validador Superficial: Flujos Negativos y Mensajes de Error", () => {
       any,
       false
     >;
-    type TestErrorArray = AssertAssignable<
+    type TestErrorArray = ExpectEqual<
       ResultadoArrayProhibido,
       ERR_ARREGLOS_PROHIBIDOS
     >;
@@ -74,9 +74,6 @@ test("Validador Superficial: Flujos Negativos y Mensajes de Error", () => {
       any,
       true
     >;
-    type TestErrorLlaves = AssertAssignable<
-      ResultadoLlaves,
-      ERR_LLAVES_INVALIDAS
-    >;
+    type TestErrorLlaves = ExpectEqual<ResultadoLlaves, ERR_LLAVES_INVALIDAS>;
   }
 });

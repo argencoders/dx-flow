@@ -1,5 +1,5 @@
 import { test } from "node:test";
-import { AssertAssignable } from "../core/testing.types.js";
+import { ExpectEqual } from "../core/testing.types.js";
 import {
   ValidateObjectKeys,
   StringToAlphabet,
@@ -15,12 +15,12 @@ test("Nomenclatura: Validación atómica de StringToAlphabet", () => {
     type AlfabetoPrueba = StringToAlphabet<"ABC">;
     type UnionEsperada = "A" | "B" | "C";
 
-    type TestOk = AssertAssignable<AlfabetoPrueba, UnionEsperada>;
+    type TestOk = ExpectEqual<AlfabetoPrueba, UnionEsperada>;
 
     type AlfabetoUnion = StringToAlphabet<"XY" | "Z">;
     type UnionMultipleEsperada = "X" | "Y" | "Z";
 
-    type TestUnionOk = AssertAssignable<AlfabetoUnion, UnionMultipleEsperada>;
+    type TestUnionOk = ExpectEqual<AlfabetoUnion, UnionMultipleEsperada>;
   }
 });
 
@@ -32,13 +32,13 @@ test("Nomenclatura: Validación atómica de IsValidStringByAlphabet", () => {
     type AlfabetoBinario = StringToAlphabet<"01">;
 
     // ✅ REQUISITO: Cadenas compuestas puramente por caracteres del alfabeto dan true
-    type TestBinarioValido = AssertAssignable<
+    type TestBinarioValido = ExpectEqual<
       IsValidStringByAlphabet<"101001", AlfabetoBinario>,
       true
     >;
 
     // ❌ REQUISITO: Si se cuela un solo carácter ajeno al alfabeto, da false
-    type TestBinarioInvalido = AssertAssignable<
+    type TestBinarioInvalido = ExpectEqual<
       IsValidStringByAlphabet<"1010201", AlfabetoBinario>,
       false
     >;
@@ -57,7 +57,7 @@ test("Nomenclatura: Validación con la estrategia 'default' y 'string'", () => {
       [miSymbol]: boolean;
     }
 
-    type TestDefaultOk = AssertAssignable<
+    type TestDefaultOk = ExpectEqual<
       ValidateObjectKeys<EstadoMixto, "default">,
       EstadoMixto
     >;
@@ -66,7 +66,7 @@ test("Nomenclatura: Validación con la estrategia 'default' y 'string'", () => {
       nombre: string;
       correo: string;
     }
-    type TestStringOk = AssertAssignable<
+    type TestStringOk = ExpectEqual<
       ValidateObjectKeys<SoloStrings, "string">,
       SoloStrings
     >;
@@ -75,7 +75,7 @@ test("Nomenclatura: Validación con la estrategia 'default' y 'string'", () => {
       id: string;
       1: number;
     }
-    type TestStringFalla = AssertAssignable<
+    type TestStringFalla = ExpectEqual<
       ValidateObjectKeys<ConNumero, "string">,
       ERR_NOMENCLATURA_INVALIDA
     >;
@@ -92,7 +92,7 @@ test("Nomenclatura: Validación con la estrategia 'SCREAMING_SNAKE'", () => {
       SET_USER_2: number; // ✅ Ahora los números intermedios son perfectamente válidos
       RESET: boolean;
     }
-    type TestOk = AssertAssignable<
+    type TestOk = ExpectEqual<
       ValidateObjectKeys<CasingCorrecto, "SCREAMING_SNAKE">,
       CasingCorrecto
     >;
@@ -109,15 +109,15 @@ test("Nomenclatura: Validación con la estrategia 'SCREAMING_SNAKE'", () => {
       _RESET: string;
     }
 
-    type TestFallaMinuscula = AssertAssignable<
+    type TestFallaMinuscula = ExpectEqual<
       ValidateObjectKeys<ConMinuscula, "SCREAMING_SNAKE">,
       ERR_NOMENCLATURA_INVALIDA
     >;
-    type TestFallaEspacio = AssertAssignable<
+    type TestFallaEspacio = ExpectEqual<
       ValidateObjectKeys<ConEspacio, "SCREAMING_SNAKE">,
       ERR_NOMENCLATURA_INVALIDA
     >;
-    type TestFallaHuerfano = AssertAssignable<
+    type TestFallaHuerfano = ExpectEqual<
       ValidateObjectKeys<ConGuionBajoHuerfano, "SCREAMING_SNAKE">,
       ERR_NOMENCLATURA_INVALIDA
     >;
@@ -151,13 +151,13 @@ test("Nomenclatura: Validación mediante Extensión de Interfaz (SOLO_ABC)", () 
     }
 
     // ✅ REQUISITO: La nueva estrategia inyectada figura de forma nativa en las opciones y valida con éxito
-    type TestOk = AssertAssignable<
+    type TestOk = ExpectEqual<
       ValidateObjectKeys<ObjetoValido, "SOLO_ABC">,
       ObjetoValido
     >;
 
     // ❌ REQUISITO: El motor procesa la nueva extensión y colapsa correctamente si se viola la regla
-    type TestFalla = AssertAssignable<
+    type TestFalla = ExpectEqual<
       ValidateObjectKeys<ObjetoInvalido, "SOLO_ABC">,
       ERR_NOMENCLATURA_INVALIDA
     >;

@@ -1,10 +1,5 @@
 import type { DeepReadonly } from "./deep-readonly.types.js";
-import type {
-  AssertAssignable,
-  Equal,
-  Expect,
-  TypeSuite,
-} from "./testing.types.js";
+import type { Equal, Expect, TypeSuite } from "./testing.types.js";
 
 interface EstadoTest {
   id: string;
