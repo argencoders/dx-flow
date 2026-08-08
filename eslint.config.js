@@ -4,7 +4,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   {
-    files: ["**/*.test-d.ts"],
+    files: ["**/*.test-d.ts", "**/*.types.ts", "**/*.type.ts"],
     languageOptions: {
       parser: tsParser,
     },
